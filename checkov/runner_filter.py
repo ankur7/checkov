@@ -153,6 +153,7 @@ class RunnerFilter(object):
             self.framework = [CheckType.SECRETS]
             logging.debug("Scan secrets history was enabled ignoring other frameworks")
             self.git_history_last_commit_scanned = git_history_last_commit_scanned
+        self.all_graphs = []
 
         self.report_sast_imports = report_sast_imports
         self.remove_default_sast_policies = remove_default_sast_policies
