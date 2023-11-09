@@ -20,7 +20,7 @@ from cyclonedx.model import (
 )
 from cyclonedx.model.bom import Bom
 from cyclonedx.model.component import Component, ComponentType
-from cyclonedx.model.license import DisjunctiveLicense
+# from cyclonedx.model.license import DisjunctiveLicense
 from cyclonedx.model.vulnerability import (
     Vulnerability,
     VulnerabilityAdvisory,
@@ -226,10 +226,10 @@ class CycloneDX:
         disjunctive_licenses = None
         licenses = resource.vulnerability_details.get("licenses")
 
-        if licenses:
-            disjunctive_licenses = [
-                DisjunctiveLicense(name=license) for license in format_string_to_licenses(licenses)
-            ]
+        # if licenses:
+        #     disjunctive_licenses = [
+        #         DisjunctiveLicense(name=license) for license in format_string_to_licenses(licenses)
+        #     ]
 
         purl = PackageURL(
             type=purl_type,
