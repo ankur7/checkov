@@ -1,0 +1,27 @@
+Creating a wheels package
+1. Go inside the checkov directory where the setup.py file is present
+2. Update the version in the version.py file
+3. Run the command "python setup.py bdist_wheel". This will create a wheels package inside the dist folder
+
+
+
+
+Uploading to artifactory
+while uploading, the path will NOT HAVE simple
+while installing the path will HAVE simple
+
+
+1. Twine Upload
+
+kodiak path
+twine upload --repository-url https://artifactory.corp.adobe.com/artifactory/api/pypi/pypi-kodiak-release dist/* --username ankujais --password AKCp8ihAtHpz6WtmdomAUZJqtJiUjFPs1wp9smJTZHNxwqCrGEWn7WVRSjfVwUxsLsLFyqmbp
+
+klam path
+twine upload --repository-url https://artifactory.corp.adobe.com/artifactory/api/pypi/pypi-klam-cli-dev dist/* --username klamnext --password AKCp5emG1Yoc34gSwmW6syNaQrAYTg1SqecXs4Nt3wkSdJjTSkbYGsP1pWYMoRvjDj47Jb79y
+
+2. Installing checkov from artifactory
+kodiak path
+pip install --index-url https://klamnext:AKCp5emG1Yoc34gSwmW6syNaQrAYTg1SqecXs4Nt3wkSdJjTSkbYGsP1pWYMoRvjDj47Jb79y@artifactory.corp.adobe.com/artifactory/api/pypi/pypi-remote/simple checkov==3.0.31.1
+
+klam path
+pip install --index-url https://klamnext:AKCp5emG1Yoc34gSwmW6syNaQrAYTg1SqecXs4Nt3wkSdJjTSkbYGsP1pWYMoRvjDj47Jb79y@artifactory.corp.adobe.com/artifactory/api/pypi/pypi-klam-cli-dev/simple checkov==3.0.31.1
