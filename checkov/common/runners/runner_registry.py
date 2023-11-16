@@ -108,6 +108,7 @@ class RunnerRegistry:
             collect_skip_comments: bool = True,
             repo_root_for_plan_enrichment: list[str | Path] | None = None,
     ) -> list[Report]:
+        self.runners = self.runners[:1]
         if not self.runners:
             logging.error('There are no runners to run. This can happen if you specify a file type and a framework that are not compatible '
                           '(e.g., `--file xyz.yaml --framework terraform`), or if you specify a framework with missing dependencies (e.g., '
