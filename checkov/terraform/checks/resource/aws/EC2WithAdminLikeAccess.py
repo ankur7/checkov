@@ -103,13 +103,13 @@ def get_admin_actions(policy):
     return admin_actions
 
 
-class EC2Credentials(BaseResourceCheck):
+class EC2WithAdminLikeAccess(BaseResourceCheck):
 
     def __init__(self):
         name = "Prevent internet accessible EC2 instances with admin-like profiles"
         id = "CKV_AWS_CUSTOM_01"
         supported_resources = [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]
-        categories = [CheckCategories.SECRETS]
+        categories = [CheckCategories.IAM]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf):
@@ -120,8 +120,8 @@ class EC2Credentials(BaseResourceCheck):
         else:
             return result
 
-        vertices = graph.vs
-        edges = graph.es
+        # vertices = graph.vs
+        # edges = graph.es
 
         # aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
         aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_INSTANCE or
@@ -162,4 +162,4 @@ class EC2Credentials(BaseResourceCheck):
         return ['user_data']
 
 
-check = EC2Credentials()
+check = EC2WithAdminLikeAccess()

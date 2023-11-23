@@ -102,7 +102,7 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
-class EC2Credentials(BaseResourceCheck):
+class EC2WithAccessFromInternet(BaseResourceCheck):
 
     def __init__(self):
         name = "Block access from Internet except ports HTTP80/HTTPS443"
@@ -161,4 +161,4 @@ class EC2Credentials(BaseResourceCheck):
         return ['user_data']
 
 
-check = EC2Credentials()
+check = EC2WithAccessFromInternet()
