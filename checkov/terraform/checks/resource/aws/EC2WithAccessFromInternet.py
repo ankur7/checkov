@@ -102,6 +102,35 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
+def is_ec2_instance_publicly_accessible(graph, aws_instance):
+    aws_instance_attributes = aws_instance.attributes()
+    aws_instance_name = aws_instance_attributes['attr']['block_name_'].split('.')[1]
+
+    connected_security_groups = [neighbor for neighbor in graph.vs[aws_instance.index].neighbors() if
+                                 neighbor['resource_type'] == AWS_SECURITY_GROUP]
+
+    for security_group in connected_security_groups:
+        security_group_attributes = security_group.attributes()
+        security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
+        ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name]['ingress']
+
+        for ingress in ingress_list:
+            cidr_blocks = ingress.get('cidr_blocks', [None])[0]
+            from_port = ingress.get('from_port', [None])[0]
+            to_port = ingress.get('to_port', [None])[0]
+            protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
+
+            if '0.0.0.0/0' in cidr_blocks:
+                aws_instance_tags = aws_instance_attributes['attr']['config_']['aws_instance'][aws_instance_name]['tags']
+                if aws_instance_tags and isinstance(aws_instance_tags, list):
+                    aws_instance_tags = aws_instance_tags[0]
+                    tagged_exceptions = generate_tagged_exceptions(aws_instance_tags)
+
+                    for port in range(int(from_port), int(to_port) + 1):
+                        if f"{protocol}{from_port}" not in tagged_exceptions:
+                            return True
+
+
 class EC2WithAccessFromInternet(BaseResourceCheck):
 
     def __init__(self):
@@ -125,35 +154,10 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
         aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
         # aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_SECURITY_GROUP)
         for aws_instance in aws_instance_list:
-            # all_neighbors_indices = graph.neighbors(aws_instance)
-            # all_neighbors_vertices = [vertices[ind] for ind in all_neighbors_indices]
-            # connected_iam_roles = [neighbor for neighbor in all_neighbors_vertices if neighbor['resource_type'] == AWS_IAM_ROLE]
-            aws_instance_attributes = aws_instance.attributes()
-            aws_instance_name = aws_instance_attributes['attr']['block_name_'].split('.')[1]
 
-            connected_security_groups = [neighbor for neighbor in graph.vs[aws_instance.index].neighbors() if neighbor['resource_type'] == AWS_SECURITY_GROUP]
-
-            for security_group in connected_security_groups:
-                security_group_attributes = security_group.attributes()
-                security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-                ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name]['ingress']
-
-                for ingress in ingress_list:
-                    cidr_blocks = ingress.get('cidr_blocks', [None])[0]
-                    from_port = ingress.get('from_port', [None])[0]
-                    to_port = ingress.get('to_port', [None])[0]
-                    protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
-
-
-                    if '0.0.0.0/0' in cidr_blocks:
-                        aws_instance_tags = aws_instance_attributes['attr']['config_']['aws_instance'][aws_instance_name]['tags']
-                        if aws_instance_tags and isinstance(aws_instance_tags, list):
-                            aws_instance_tags = aws_instance_tags[0]
-                            tagged_exceptions = generate_tagged_exceptions(aws_instance_tags)
-
-                            for port in range(int(from_port), int(to_port) + 1):
-                                if f"{protocol}{from_port}" not in tagged_exceptions:
-                                    return CheckResult.FAILED
+            is_publicly_accessible = is_ec2_instance_publicly_accessible(graph, aws_instance)
+            if is_publicly_accessible:
+                return CheckResult.FAILED
 
         return result
 
