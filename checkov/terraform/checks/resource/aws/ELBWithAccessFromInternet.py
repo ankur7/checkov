@@ -5,7 +5,9 @@ from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
 
 AWS_ELB = 'aws_lb'
+AWS_LB_TARGET_GROUP = 'aws_lb_target_group'
 AWS_SECURITY_GROUP = 'aws_security_group'
+
 
 PUBLIC_PORT_TAG_KEYS = [
     "Adobe:PublicPorts",
@@ -117,7 +119,7 @@ def is_elb_publicly_accessible(graph, aws_elb):
 
             if '0.0.0.0/0' in cidr_blocks:
                 for port in range(int(from_port), int(to_port) + 1):
-                    if port not in ['80', '443']:
+                    if port not in [80, 443]:
                         return True
 
             # todo aj add exception handling through tags or whatever is being used
@@ -138,8 +140,7 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
     def __init__(self):
         name = "Block inbound access from the Internet (Source IP: 0.0.0.0/0) on ports other than 80 and 443 for ELBs"
         id = "CKV_AWS_NETWORK_0004"
-        supported_resources = [
-            AWS_ELB]  # todo aj security group also, maybe someone only commits code related to security group
+        supported_resources = [AWS_ELB, AWS_LB_TARGET_GROUP]  # todo aj security group also, maybe someone only commits code related to security group
         categories = [CheckCategories.LOGGING]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
@@ -151,11 +152,10 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        vertices = graph.vs
-        # edges = graph.es
+        aws_elb_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_ELB or
+                                       vertex["resource_type"] == AWS_LB_TARGET_GROUP
+                                       )
 
-        aws_elb_list = vertices.select(resource_type=AWS_ELB)
-        # aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_SECURITY_GROUP)
         for aws_elb in aws_elb_list:
 
             is_publicly_accessible = is_elb_publicly_accessible(graph, aws_elb)
