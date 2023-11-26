@@ -134,8 +134,8 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
 class EC2WithAccessFromInternet(BaseResourceCheck):
 
     def __init__(self):
-        name = "Block access from Internet except ports HTTP80/HTTPS443"
-        id = "CKV_AWS_CUSTOM_02"
+        name = "Block access from Internet (Source IP: 0.0.0.0/0) except ports HTTP80/HTTPS443"
+        id = "CKV_AWS_NETWORK_0002"
         supported_resources = [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]
         categories = [CheckCategories.SECRETS]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
@@ -149,7 +149,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             return result
 
         vertices = graph.vs
-        edges = graph.es
+        # edges = graph.es
 
         aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
         # aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_SECURITY_GROUP)
