@@ -112,10 +112,22 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
     for security_group in connected_security_groups:
         security_group_attributes = security_group.attributes()
         security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name]['ingress']
+        # ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name]['ingress']
+
+        ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name].get('ingress')
+
+        if not ingress_list:
+            continue  # no ingress_list, cannot check
 
         for ingress in ingress_list:
-            cidr_blocks = ingress.get('cidr_blocks', [None])[0]
+            # cidr_blocks = ingress.get('cidr_blocks', [None])[0]
+            cidr_blocks = ingress.get('cidr_blocks')
+            if cidr_blocks:
+                cidr_blocks = cidr_blocks[0]
+            else:
+                continue  # no cidr blocks, cannot check
+
+
             from_port = ingress.get('from_port', [None])[0]
             to_port = ingress.get('to_port', [None])[0]
             protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
