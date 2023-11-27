@@ -127,7 +127,6 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
             else:
                 continue  # no cidr blocks, cannot check
 
-
             from_port = ingress.get('from_port', [None])[0]
             to_port = ingress.get('to_port', [None])[0]
             protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None

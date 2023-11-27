@@ -4,10 +4,11 @@ from typing import List
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
 
-AWS_ELB = 'aws_lb'
+AWS_LB = 'aws_lb'    # Application Load Balancer
 AWS_LB_TARGET_GROUP = 'aws_lb_target_group'
-AWS_SECURITY_GROUP = 'aws_security_group'
 
+AWS_ELB = 'aws_elb'  # Classic Load Balancer
+AWS_SECURITY_GROUP = 'aws_security_group'
 
 PUBLIC_PORT_TAG_KEYS = [
     "Adobe:PublicPorts",
@@ -161,7 +162,8 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
             return result
 
         aws_elb_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_ELB or
-                                       vertex["resource_type"] == AWS_LB_TARGET_GROUP
+                                                      vertex["resource_type"] == AWS_LB_TARGET_GROUP or
+                                                      vertex["resource_type"] == AWS_LB
                                        )
 
         for aws_elb in aws_elb_list:
