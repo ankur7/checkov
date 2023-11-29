@@ -99,6 +99,27 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
+def flatten(ingress_list):
+    result = []
+    for ingress in ingress_list:
+        if isinstance(ingress, list):
+            result.extend(flatten(ingress))
+        else:
+            result.append(ingress)
+    return result
+
+
+def flatten_cidr_blocks(cidr_blocks):
+    result = []
+    for block_list in cidr_blocks:
+        if isinstance(block_list, list):
+            for block in block_list:
+                result.append(str(block))
+        else:
+            result.append(str(block_list))
+    return result
+
+
 def is_elb_publicly_accessible(graph, aws_elb):
     aws_elb_attributes = aws_elb.attributes()
     aws_elb_name = aws_elb_attributes['attr']['block_name_'].split('.')[1]
@@ -114,17 +135,36 @@ def is_elb_publicly_accessible(graph, aws_elb):
         if not ingress_list:
             continue  # no ingress_list, cannot check
 
+        ingress_list = flatten(ingress_list)
+
         for ingress in ingress_list:
             # cidr_blocks = ingress.get('cidr_blocks', [None])[0]
             cidr_blocks = ingress.get('cidr_blocks')
             if cidr_blocks:
-                cidr_blocks = cidr_blocks[0]
+                cidr_blocks = flatten_cidr_blocks(cidr_blocks)
             else:
                 continue  # no cidr blocks, cannot check
 
-            from_port = ingress.get('from_port', [None])[0]
-            to_port = ingress.get('to_port', [None])[0]
-            protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
+            from_port = ingress.get('from_port')
+            if from_port:
+                if isinstance(from_port, list):
+                    from_port = from_port[0]
+
+            to_port = ingress.get('to_port')
+            if to_port:
+                if isinstance(to_port, list):
+                    to_port = to_port[0]
+
+            protocol = ingress.get('protocol', 'TCP')
+            if protocol:
+                if isinstance(protocol, list):
+                    protocol = protocol[0]
+                    if isinstance(protocol, str):
+                        protocol = protocol.upper()
+
+            # from_port = ingress.get('from_port', [None])[0]
+            # to_port = ingress.get('to_port', [None])[0]
+            # protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
 
             if '0.0.0.0/0' in cidr_blocks:
                 for port in range(int(from_port), int(to_port) + 1):
