@@ -195,12 +195,19 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
-def is_public_ip(ip):
+def is_public_ip(input_value):
+    if input_value == '0.0.0.0/0':
+        return True
     try:
-        ip_obj = ipaddress.ip_address(ip)
-        return not ip_obj.is_private
+        network_obj = ipaddress.ip_network(input_value, strict=False)
+        return not network_obj.is_private
     except ValueError:
-        return False  # Not a valid IP address
+        try:
+            ip_obj = ipaddress.ip_address(input_value)
+            return not ip_obj.is_private
+        except ValueError:
+            # Handle invalid IP address or CIDR
+            return False # Not a valid IP address
 
 
 def flatten(ingress_list):
@@ -282,7 +289,6 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
             #         for port in range(int(from_port), int(to_port) + 1):
             #             if f"{protocol}{from_port}" not in tagged_exceptions:
             #                 return True
-
 
 
 class EC2WithAdminLikeAccess(BaseResourceCheck):

@@ -172,14 +172,21 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
             # protocol = ingress.get('protocol', ['TCP'])[0].upper() if 'protocol' in ingress else None
 
             if '0.0.0.0/0' in cidr_blocks:
-                aws_instance_tags = aws_instance_attributes['attr']['config_'][AWS_INSTANCE][aws_instance_name]['tags']  # todo aj null check, what if tags dont exist
-                if aws_instance_tags and isinstance(aws_instance_tags, list):
-                    aws_instance_tags = aws_instance_tags[0]
-                    tagged_exceptions = generate_tagged_exceptions(aws_instance_tags)
+                for port in range(int(from_port), int(to_port) + 1):
+                    if port not in [80, 443]:
+                        return True
 
-                    for port in range(int(from_port), int(to_port) + 1):
-                        if f"{protocol}{from_port}" not in tagged_exceptions:
-                            return True
+            # todo aj add exception handling through tags or whatever is being used
+
+            # if '0.0.0.0/0' in cidr_blocks:
+            #     aws_instance_tags = aws_instance_attributes['attr']['config_'][AWS_INSTANCE][aws_instance_name]['tags']  # todo aj null check, what if tags dont exist
+            #     if aws_instance_tags and isinstance(aws_instance_tags, list):
+            #         aws_instance_tags = aws_instance_tags[0]
+            #         tagged_exceptions = generate_tagged_exceptions(aws_instance_tags)
+            #
+            #         for port in range(int(from_port), int(to_port) + 1):
+            #             if f"{protocol}{from_port}" not in tagged_exceptions:
+            #                 return True
 
 
 class EC2WithAccessFromInternet(BaseResourceCheck):
