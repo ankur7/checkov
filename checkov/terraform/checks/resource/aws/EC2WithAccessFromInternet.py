@@ -11,6 +11,7 @@ AWS_INSTANCE = 'aws_instance'
 AWS_LAUNCH_TEMPLATE = 'aws_launch_template'
 AWS_LAUNCH_CONFIGURATION = 'aws_launch_configuration'
 AWS_SECURITY_GROUP = 'aws_security_group'
+AWS_AUTOSCALING_GROUP = 'aws_autoscaling_group'
 # AWS_IAM_ROLE_POLICY = 'aws_iam_role_policy'
 # AWS_IAM_ROLE_POLICY_ATTACHMENT = 'aws_iam_role_policy_attachment'  # AWS managed policies
 PUBLIC_PORT_TAG_KEYS = [
@@ -133,7 +134,6 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
     for security_group in connected_security_groups:
         security_group_attributes = security_group.attributes()
         security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        # ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name]['ingress']
 
         ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name].get('ingress')
 
@@ -189,6 +189,14 @@ def is_ec2_instance_publicly_accessible(graph, aws_instance):
             #                 return True
 
 
+def connected_to_auto_scaling_group(graph, launch_temp_or_launch_conf):
+    connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
+                                     neighbor['resource_type'] == AWS_AUTOSCALING_GROUP]
+    if connected_auto_scaling_groups:
+        return True
+    return False
+
+
 class EC2WithAccessFromInternet(BaseResourceCheck):
 
     def __init__(self):
@@ -207,14 +215,28 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        vertices = graph.vs
-        # edges = graph.es
+        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                           vertex["resource_type"] == AWS_INSTANCE
+                                                            )
+                                            )
 
-        aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
-        # aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_SECURITY_GROUP)
         for aws_instance in aws_instance_list:
-
             is_publicly_accessible = is_ec2_instance_publicly_accessible(graph, aws_instance)
+            if is_publicly_accessible:
+                return CheckResult.FAILED
+
+        launch_temp_or_launch_conf__list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                                          vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
+                                                                          vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
+                                                            )
+                                            )
+
+        for launch_temp_or_launch_conf in launch_temp_or_launch_conf__list:
+
+            if not connected_to_auto_scaling_group(graph, launch_temp_or_launch_conf):
+                continue
+
+            is_publicly_accessible = is_ec2_instance_publicly_accessible(graph, launch_temp_or_launch_conf)
             if is_publicly_accessible:
                 return CheckResult.FAILED
 
