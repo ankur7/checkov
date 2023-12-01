@@ -1,6 +1,127 @@
 # CHANGELOG
 
-## [Unreleased](https://github.com/bridgecrewio/checkov/compare/3.0.28...HEAD)
+## [Unreleased](https://github.com/bridgecrewio/checkov/compare/3.1.20...HEAD)
+
+## [3.1.20](https://github.com/bridgecrewio/checkov/compare/3.1.19...3.1.20) - 2023-11-30
+
+### Platform
+
+- **general:** handle the updated on prem response from the platform - [#5809](https://github.com/bridgecrewio/checkov/pull/5809)
+
+## [3.1.19](https://github.com/bridgecrewio/checkov/compare/3.1.18...3.1.19) - 2023-11-29
+
+### Feature
+
+- **sca:** Using alias data from assets.json for giving Package Used indication for aliased packages - [#5808](https://github.com/bridgecrewio/checkov/pull/5808)
+
+## [3.1.18](https://github.com/bridgecrewio/checkov/compare/3.1.17...3.1.18) - 2023-11-28
+
+### Bug Fix
+
+- **terraform:** Add source_module_object to blocks from_dict func - [#5806](https://github.com/bridgecrewio/checkov/pull/5806)
+
+## [3.1.17](https://github.com/bridgecrewio/checkov/compare/3.1.15...3.1.17) - 2023-11-27
+
+### Feature
+
+- **ansible:** PAN-OS IPsec checks - [#5802](https://github.com/bridgecrewio/checkov/pull/5802)
+
+## [3.1.15](https://github.com/bridgecrewio/checkov/compare/3.1.11...3.1.15) - 2023-11-26
+
+### Feature
+
+- **ansible:** add CKV_PAN_16 PAN-OS BPA Check for session log at start - [#5794](https://github.com/bridgecrewio/checkov/pull/5794)
+- **sast:** Add alias data to imports assets - [#5788](https://github.com/bridgecrewio/checkov/pull/5788)
+
+### Bug Fix
+
+- **bicep:** Update AppServiceHttps20Enabled to consider newer ApiVersion - [#5795](https://github.com/bridgecrewio/checkov/pull/5795)
+
+## [3.1.11](https://github.com/bridgecrewio/checkov/compare/3.1.9...3.1.11) - 2023-11-23
+
+### Bug Fix
+
+- **general:** Policy metadata API fixes - [#5761](https://github.com/bridgecrewio/checkov/pull/5761)
+
+## [3.1.9](https://github.com/bridgecrewio/checkov/compare/3.1.4...3.1.9) - 2023-11-21
+
+### Bug Fix
+
+- **gha:** Update GitHub Actions Workflow Schema #5742 - [#5759](https://github.com/bridgecrewio/checkov/pull/5759)
+- **terraform_plan:** load terraform registry checks when using terraform plan - [#5778](https://github.com/bridgecrewio/checkov/pull/5778)
+- **terraform:** Ensure HTTPS in Azure Function App and App Slots - [#5766](https://github.com/bridgecrewio/checkov/pull/5766)
+
+### Platform
+
+- **general:** do not display an auth error when the runconfig endpoint returns a 500 - [#5779](https://github.com/bridgecrewio/checkov/pull/5779)
+
+## [3.1.4](https://github.com/bridgecrewio/checkov/compare/3.0.40...3.1.4) - 2023-11-20
+
+### Breaking Change
+
+- **general:** set default parallelization type to spawn and leverage Terraform downloaded module by default - [#5760](https://github.com/bridgecrewio/checkov/pull/5760)
+
+### Feature
+
+- **terraform:** Ensure ACR is zone-redundant - [#5748](https://github.com/bridgecrewio/checkov/pull/5748)
+
+### Bug Fix
+
+- **general:** Revert parallelization commit - [#5777](https://github.com/bridgecrewio/checkov/pull/5777)
+- **sast:** remove SAST frameworks for OSS users - [#5773](https://github.com/bridgecrewio/checkov/pull/5773)
+- **secrets:** don't reinitialize the upload client without API key usage - [#5771](https://github.com/bridgecrewio/checkov/pull/5771)
+
+### Documentation
+
+- **general:** properly escape CLI flags in the CLI command docs - [#5768](https://github.com/bridgecrewio/checkov/pull/5768)
+
+## [3.0.40](https://github.com/bridgecrewio/checkov/compare/3.0.38...3.0.40) - 2023-11-19
+
+### Bug Fix
+
+- **terraform_plan:** TF plan resources connection fix - [#5767](https://github.com/bridgecrewio/checkov/pull/5767)
+
+## [3.0.38](https://github.com/bridgecrewio/checkov/compare/3.0.37...3.0.38) - 2023-11-16
+
+### Feature
+
+- **terraform:** Adding YAML based build time policies for corresponding PC runtime policies - [#5714](https://github.com/bridgecrewio/checkov/pull/5714)
+
+## [3.0.37](https://github.com/bridgecrewio/checkov/compare/3.0.36...3.0.37) - 2023-11-15
+
+### Bug Fix
+
+- **terraform:** fix valid value for aws keyspaces_table encryption_specification type - [#5756](https://github.com/bridgecrewio/checkov/pull/5756)
+
+## [3.0.36](https://github.com/bridgecrewio/checkov/compare/3.0.34...3.0.36) - 2023-11-14
+
+### Bug Fix
+
+- **terraform:** check min TLS version also on azure app slots - [#5753](https://github.com/bridgecrewio/checkov/pull/5753)
+
+## [3.0.34](https://github.com/bridgecrewio/checkov/compare/3.0.32...3.0.34) - 2023-11-12
+
+### Feature
+
+- **general:** add possibility to change parallelization type - [#5737](https://github.com/bridgecrewio/checkov/pull/5737)
+
+### Bug Fix
+
+- **cloudformation:** ignore unresolved references in CKV_AWS_45 - [#5747](https://github.com/bridgecrewio/checkov/pull/5747)
+
+## [3.0.32](https://github.com/bridgecrewio/checkov/compare/3.0.28...3.0.32) - 2023-11-09
+
+### Feature
+
+- **sast:** Python cdk policies batch 2 - [#5725](https://github.com/bridgecrewio/checkov/pull/5725)
+
+### Bug Fix
+
+- **general:** add option to pass `--skip-download` with github-action - [#5734](https://github.com/bridgecrewio/checkov/pull/5734)
+
+### Platform
+
+- **general:** print the log upload location if the --support flag is used - [#5738](https://github.com/bridgecrewio/checkov/pull/5738)
 
 ## [3.0.28](https://github.com/bridgecrewio/checkov/compare/3.0.25...3.0.28) - 2023-11-08
 

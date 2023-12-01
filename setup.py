@@ -65,9 +65,9 @@ setup(
         ]
     },
     install_requires=[
-        "bc-python-hcl2==0.3.51",
+        "bc-python-hcl2==0.4.1",
         "bc-detect-secrets==1.4.30",
-        "bc-jsonpath-ng==1.5.9",
+        "bc-jsonpath-ng==1.6.1",
         "tabulate",
         "colorama",
         "termcolor",
@@ -97,7 +97,7 @@ setup(
         "aiohttp",
         "aiodns",
         "aiomultiprocess",
-        "jsonschema<5.0.0,>=4.6.0",
+        "jsonschema>=4.6.0,<5.0.0",
         "prettytable>=3.0.0",
         "pycep-parser==0.4.1",
         "charset-normalizer",
@@ -106,11 +106,11 @@ setup(
         "schema",
         "requests>=2.27.0",
         "yarl",
-        "openai",
-        "spdx-tools>=0.8.0,<0.9.0",
+        "openai<1.0.0",
+        "spdx-tools<0.9.0,>=0.8.0",
         "license-expression",
         "rustworkx",
-        "pydantic"
+        "pydantic",
     ],
     dependency_links=[],  # keep it empty, needed for pipenv-setup
     license="Apache License 2.0",
@@ -161,6 +161,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Security",
         "Topic :: Software Development :: Build Tools",
         "Typing :: Typed",

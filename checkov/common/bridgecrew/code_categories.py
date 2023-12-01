@@ -21,7 +21,7 @@ CodeCategoryMapping: Dict[str, Union[CodeCategoryType, List[CodeCategoryType]]] 
     # CheckType.AZURE_PIPELINES: CodeCategoryType.BUILD_INTEGRITY,
     # CheckType.BICEP: CodeCategoryType.IAC,
     # CheckType.BITBUCKET_PIPELINES: CodeCategoryType.BUILD_INTEGRITY,
-    # CheckType.CDK: CodeCategoryType.IAC,
+    # CheckType.CDK: CodeCategoryType.SAST,
     # CheckType.CIRCLECI_PIPELINES: CodeCategoryType.BUILD_INTEGRITY,
     # CheckType.CLOUDFORMATION: CodeCategoryType.IAC,
     # CheckType.DOCKERFILE: CodeCategoryType.IAC,
@@ -40,6 +40,7 @@ CodeCategoryMapping: Dict[str, Union[CodeCategoryType, List[CodeCategoryType]]] 
     # CheckType.SCA_IMAGE: [CodeCategoryType.LICENSES, CodeCategoryType.VULNERABILITIES],
     # CheckType.SECRETS: CodeCategoryType.SECRETS,
     # CheckType.SERVERLESS: CodeCategoryType.IAC,
+
     CheckType.TERRAFORM: CodeCategoryType.IAC,
     # CheckType.TERRAFORM_JSON: CodeCategoryType.IAC,
     # CheckType.TERRAFORM_PLAN: CodeCategoryType.IAC,

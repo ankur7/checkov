@@ -12,6 +12,7 @@ from json import JSONDecodeError
 from os import path
 from pathlib import Path
 from time import sleep
+from types import MethodType
 from typing import List, Dict, TYPE_CHECKING, Any, cast, Optional, Union
 from urllib.parse import urlparse
 
@@ -127,6 +128,55 @@ class BcPlatformIntegration:
         self.ca_certificate: str | None = None
         self.no_cert_verify: bool = False
         self.on_prem: bool = False
+        self.daemon_process = False  # set to 'True' when running in multiprocessing 'spawn' mode
+
+    def init_instance(self, platform_integration_data: dict[str, Any]) -> None:
+        """This is mainly used for recreating the instance without interacting with the platform again"""
+
+        self.daemon_process = True
+
+        self.bc_api_url = platform_integration_data["bc_api_url"]
+        self.bc_api_key = platform_integration_data["bc_api_key"]
+        self.bc_source = platform_integration_data["bc_source"]
+        self.bc_source_version = platform_integration_data["bc_source_version"]
+        self.bucket = platform_integration_data["bucket"]
+        self.cicd_details = platform_integration_data["cicd_details"]
+        self.credentials = platform_integration_data["credentials"]
+        self.platform_integration_configured = platform_integration_data["platform_integration_configured"]
+        self.prisma_api_url = platform_integration_data["prisma_api_url"]
+        self.repo_branch = platform_integration_data["repo_branch"]
+        self.repo_id = platform_integration_data["repo_id"]
+        self.repo_path = platform_integration_data["repo_path"]
+        self.skip_fixes = platform_integration_data["skip_fixes"]
+        self.timestamp = platform_integration_data["timestamp"]
+        self.use_s3_integration = platform_integration_data["use_s3_integration"]
+        self.setup_api_urls()
+        # 'mypy' doesn't like, when you try to override an instance method
+        self.get_auth_token = MethodType(lambda _=None: platform_integration_data["get_auth_token"], self)  # type:ignore[method-assign]
+
+    def generate_instance_data(self) -> dict[str, Any]:
+        """This output is used to re-initialize the instance and should be kept in sync with 'init_instance()'"""
+
+        return {
+            # 'api_url' will be set by invoking 'setup_api_urls()'
+            "bc_api_url": self.bc_api_url,
+            "bc_api_key": self.bc_api_key,
+            "bc_source": self.bc_source,
+            "bc_source_version": self.bc_source_version,
+            "bucket": self.bucket,
+            "cicd_details": self.cicd_details,
+            "credentials": self.credentials,
+            "platform_integration_configured": self.platform_integration_configured,
+            "prisma_api_url": self.prisma_api_url,
+            "repo_branch": self.repo_branch,
+            "repo_id": self.repo_id,
+            "repo_path": self.repo_path,
+            "skip_fixes": self.skip_fixes,
+            "timestamp": self.timestamp,
+            "use_s3_integration": self.use_s3_integration,
+            # will be overriden with a simple lambda expression
+            "get_auth_token": self.get_auth_token() if self.bc_api_key else ""
+        }
 
     def set_bc_api_url(self, new_url: str) -> None:
         self.bc_api_url = normalize_bc_url(new_url)
@@ -306,12 +356,6 @@ class BcPlatformIntegration:
         self.platform_integration_configured = True
 
     def set_s3_integration(self) -> None:
-        region = DEFAULT_REGION
-        use_accelerate_endpoint = True
-        if self.prisma_api_url == PRISMA_GOV_API_URL:
-            region = GOV_CLOUD_REGION
-            use_accelerate_endpoint = False
-
         try:
             self.skip_fixes = True  # no need to run fixes on CI integration
             repo_full_path, support_path, response = self.get_s3_role(self.repo_id)  # type: ignore
@@ -322,6 +366,39 @@ class BcPlatformIntegration:
 
             self.timestamp = self.repo_path.split("/")[-2]
             self.credentials = cast("dict[str, str]", response["creds"])
+
+            self.set_s3_client()
+
+            if self.support_flag_enabled:
+                self.support_bucket, self.support_repo_path = cast(str, support_path).split("/", 1)
+
+            self.use_s3_integration = True
+            self.platform_integration_configured = True
+        except MaxRetryError:
+            logging.error("An SSL error occurred connecting to the platform. If you are on a VPN, please try "
+                          "disabling it and re-running the command.", exc_info=True)
+            raise
+        except HTTPError:
+            logging.error("Failed to get customer assumed role", exc_info=True)
+            raise
+        except JSONDecodeError:
+            logging.error(f"Response of {self.integrations_api_url} is not a valid JSON", exc_info=True)
+            raise
+        except BridgecrewAuthError:
+            logging.error("Received an error response during authentication")
+            raise
+
+    def set_s3_client(self) -> None:
+        if not self.credentials:
+            raise ValueError("Credentials for client are not set")
+
+        region = DEFAULT_REGION
+        use_accelerate_endpoint = True
+        if self.prisma_api_url == PRISMA_GOV_API_URL:
+            region = GOV_CLOUD_REGION
+            use_accelerate_endpoint = False
+
+        try:
             config = Config(
                 s3={
                     "use_accelerate_endpoint": use_accelerate_endpoint,
@@ -335,26 +412,8 @@ class BcPlatformIntegration:
                 region_name=region,
                 config=config,
             )
-
-            if self.support_flag_enabled:
-                self.support_bucket, self.support_repo_path = cast(str, support_path).split("/", 1)
-
-            self.use_s3_integration = True
-        except MaxRetryError:
-            logging.error("An SSL error occurred connecting to the platform. If you are on a VPN, please try "
-                          "disabling it and re-running the command.", exc_info=True)
-            raise
-        except HTTPError:
-            logging.error("Failed to get customer assumed role", exc_info=True)
-            raise
         except ClientError:
             logging.error(f"Failed to initiate client with credentials {self.credentials}", exc_info=True)
-            raise
-        except JSONDecodeError:
-            logging.error(f"Response of {self.integrations_api_url} is not a valid JSON", exc_info=True)
-            raise
-        except BridgecrewAuthError:
-            logging.error("Received an error response during authentication")
             raise
 
     def get_s3_role(self, repo_id: str) -> tuple[str, str, dict[str, Any]] | tuple[None, None, dict[str, Any]]:
@@ -757,9 +816,18 @@ class BcPlatformIntegration:
             url = self.get_run_config_url()
             logging.debug(f'Platform run config URL: {url}')
             request = self.http.request("GET", url, headers=headers)  # type:ignore[no-untyped-call]
-            logging.debug(f'Request ID: {request.headers.get("x-amzn-requestid")}')
-            logging.debug(f'Trace ID: {request.headers.get("x-amzn-trace-id")}')
-            if request.status != 200:
+            request_id = request.headers.get("x-amzn-requestid")
+            trace_id = request.headers.get("x-amzn-trace-id")
+            logging.debug(f'Request ID: {request_id}')
+            logging.debug(f'Trace ID: {trace_id}')
+            if request.status == 500:
+                error_message = 'An unexpected backend error occurred getting the run configuration from the platform (status code 500). ' \
+                                'please contact support and provide debug logs and the values below. You may be able to use the --skip-download option ' \
+                                'to bypass this error, but this will prevent platform configurations (e.g., custom policies, suppressions) from ' \
+                                f'being used in the scan.\nRequest ID: {request_id}\nTrace ID: {trace_id}'
+                logging.error(error_message)
+                raise Exception(error_message)
+            elif request.status != 200:
                 error_message = get_auth_error_message(request.status, self.is_prisma_integration(), False)
                 logging.error(error_message)
                 raise BridgecrewAuthError(error_message)
@@ -829,6 +897,9 @@ class BcPlatformIntegration:
             raise Exception(
                 "Tried to get prisma build policy metadata, "
                 "but the API key was missing or the integration was not set up")
+
+        request = None
+
         try:
             token = self.get_auth_token()
             headers = merge_dicts(get_prisma_auth_header(token), get_prisma_get_headers())
@@ -855,10 +926,12 @@ class BcPlatformIntegration:
             else:
                 logging.warning("Skipping get prisma build policies. --policy-metadata-filter will not be applied.")
         except Exception:
+            response_message = f': {request.status} - {request.reason}' if request else ''
             logging.warning(
-                f"Failed to get prisma build policy metadata from {self.platform_run_config_url}", exc_info=True)
+                f"Failed to get prisma build policy metadata from {self.prisma_policies_url}{response_message}", exc_info=True)
 
     def get_prisma_policy_filters(self) -> Dict[str, Dict[str, Any]]:
+        request = None
         try:
             token = self.get_auth_token()
             headers = merge_dicts(get_prisma_auth_header(token), get_prisma_get_headers())
@@ -878,8 +951,9 @@ class BcPlatformIntegration:
             logging.debug(f'Prisma filter suggestion response: {policy_filters}')
             return policy_filters
         except Exception:
+            response_message = f': {request.status} - {request.reason}' if request else ''
             logging.warning(
-                f"Failed to get prisma build policy metadata from {self.platform_run_config_url}", exc_info=True)
+                f"Failed to get prisma build policy metadata from {self.prisma_policy_filters_url}{response_message}", exc_info=True)
             return {}
 
     @staticmethod
@@ -1094,7 +1168,9 @@ class BcPlatformIntegration:
 
     def setup_on_prem(self) -> None:
         if self.customer_run_config_response:
-            self.on_prem = self.customer_run_config_response.get('onPrem', False)
+            self.on_prem = self.customer_run_config_response.get('tenantConfig', {}).get('preventCodeUploads', False)
+            if self.on_prem:
+                logging.debug('On prem mode is enabled')
 
 
 bc_integration = BcPlatformIntegration()

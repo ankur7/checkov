@@ -56,7 +56,7 @@ jobs:
           body: ${{ steps.build_github_release.outputs.changelog }}
       - name: Update CHANGELOG.md
         if: steps.build_github_release.outputs.changelog != ''
-        uses: stefanzweifel/changelog-updater-action@ab89eeba5adfbb4ebdaabf7f1a17d76eec6c59c9  # v1
+        uses: stefanzweifel/changelog-updater-action@622311becab6b400fd95efaf29719f401ffa4691  # v1
         with:
           latest-version: ${{ steps.prepare_release.outputs.version }}
           release-notes: ${{ steps.build_github_release.outputs.changelog }}
@@ -106,9 +106,18 @@ jobs:
           pipenv run pip install pyinstaller
       - name: Build executable
         run: pipenv run pyinstaller checkov.spec
+      - name: Windows - Test executable
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        # make sure it doesn't crash
+        run: ./dist/checkov.exe -s -d tests/terraform/checks/resource/alicloud
       - name: Windows - zip artifact
         if: matrix.os == 'windows-latest'
         run: tar.exe -a -c -f checkov.zip dist\\checkov.exe
+      - name: Linux/Mac - Test executable
+        if: matrix.os != 'windows-latest'
+        # make sure it doesn't crash
+        run: ./dist/checkov -s -d tests/terraform/checks/resource/alicloud
       - name: Linux/Mac - zip artifact
         if: matrix.os != 'windows-latest'
         run: zip checkov.zip dist/checkov
