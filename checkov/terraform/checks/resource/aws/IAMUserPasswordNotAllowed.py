@@ -25,7 +25,9 @@ class IAMUserPasswordNotAllowed(BaseResourceCheck):
         else:
             return result
 
-        aws_iam_user_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_IAM_USER)
+        aws_iam_user_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                           vertex["resource_type"] == AWS_IAM_USER)
+                                            )
 
         for aws_iam_user in aws_iam_user_list:
             aws_iam_user_login_profile_list = [neighbor for neighbor in graph.vs[aws_iam_user.index].neighbors() if

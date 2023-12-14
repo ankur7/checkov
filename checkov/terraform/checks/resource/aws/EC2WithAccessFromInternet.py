@@ -1,4 +1,11 @@
+"""
+Keep all the common functions in this class.
+Those common functions that will be used in Kodiak IAC Scanning
+"""
+
+
 import re
+import ipaddress
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
@@ -122,6 +129,21 @@ def flatten_cidr_blocks(cidr_blocks):
         else:
             result.append(str(block_list))
     return result
+
+
+def is_public_ip(input_value):
+    if input_value == '0.0.0.0/0':
+        return True
+    try:
+        network_obj = ipaddress.ip_network(input_value, strict=False)
+        return not network_obj.is_private
+    except ValueError:
+        try:
+            ip_obj = ipaddress.ip_address(input_value)
+            return not ip_obj.is_private
+        except ValueError:
+            # Handle invalid IP address or CIDR
+            return False # Not a valid IP address
 
 
 def is_ec2_instance_publicly_accessible(graph, aws_instance):

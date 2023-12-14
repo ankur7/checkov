@@ -2,45 +2,11 @@ import ipaddress
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
+from checkov.terraform.checks.resource.aws.EC2WithAccessFromInternet import flatten, flatten_cidr_blocks, is_public_ip
 
 AWS_DB_INSTANCE = 'aws_db_instance'
 AWS_RDS_CLUSTER_INSTANCE = 'aws_rds_cluster_instance'
 AWS_SECURITY_GROUP = 'aws_security_group'
-
-
-def is_public_ip(input_value):
-    if input_value == '0.0.0.0/0':
-        return True
-    try:
-        network_obj = ipaddress.ip_network(input_value, strict=False)
-        return not network_obj.is_private
-    except ValueError:
-        try:
-            ip_obj = ipaddress.ip_address(input_value)
-            return not ip_obj.is_private
-        except ValueError:
-            # Handle invalid IP address or CIDR
-            return False # Not a valid IP address
-
-def flatten(ingress_list):
-    result = []
-    for ingress in ingress_list:
-        if isinstance(ingress, list):
-            result.extend(flatten(ingress))
-        else:
-            result.append(ingress)
-    return result
-
-
-def flatten_cidr_blocks(cidr_blocks):
-    result = []
-    for block_list in cidr_blocks:
-        if isinstance(block_list, list):
-            for block in block_list:
-                result.append(str(block))
-        else:
-            result.append(str(block_list))
-    return result
 
 
 def is_rds_publicly_accessible(graph, aws_rds):
@@ -123,9 +89,10 @@ class RDSPubliclyAccessibleCustom(BaseResourceCheck):
         else:
             return result
 
-        aws_rds_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_DB_INSTANCE or
+        aws_rds_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                      vertex["resource_type"] == AWS_DB_INSTANCE or
                                                       vertex["resource_type"] == AWS_RDS_CLUSTER_INSTANCE
-                                       )
+                                       ))
 
         for aws_rds in aws_rds_list:
             is_publicly_accessible = is_rds_publicly_accessible(graph, aws_rds)

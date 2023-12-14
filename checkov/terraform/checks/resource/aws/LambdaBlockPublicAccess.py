@@ -23,7 +23,9 @@ class LambdaBlockPublicAccess(BaseResourceCheck):
         else:
             return result
 
-        aws_lambda_function_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_LAMBDA_FUNCTION)
+        aws_lambda_function_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                                  vertex["resource_type"] == AWS_LAMBDA_FUNCTION)
+                                                   )
 
         for aws_lambda_function in aws_lambda_function_list:
             aws_lambda_permission_list = [neighbor for neighbor in graph.vs[aws_lambda_function.index].neighbors() if

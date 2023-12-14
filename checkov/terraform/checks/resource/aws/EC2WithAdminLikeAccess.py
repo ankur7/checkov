@@ -4,7 +4,7 @@ from typing import List
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.common.util.secrets import string_has_secrets
+from checkov.terraform.checks.resource.aws.EC2WithAccessFromInternet import flatten, flatten_cidr_blocks, is_public_ip
 
 AWS = 'aws'
 
@@ -195,42 +195,6 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
-def is_public_ip(input_value):
-    if input_value == '0.0.0.0/0':
-        return True
-    try:
-        network_obj = ipaddress.ip_network(input_value, strict=False)
-        return not network_obj.is_private
-    except ValueError:
-        try:
-            ip_obj = ipaddress.ip_address(input_value)
-            return not ip_obj.is_private
-        except ValueError:
-            # Handle invalid IP address or CIDR
-            return False # Not a valid IP address
-
-
-def flatten(ingress_list):
-    result = []
-    for ingress in ingress_list:
-        if isinstance(ingress, list):
-            result.extend(flatten(ingress))
-        else:
-            result.append(ingress)
-    return result
-
-
-def flatten_cidr_blocks(cidr_blocks):
-    result = []
-    for block_list in cidr_blocks:
-        if isinstance(block_list, list):
-            for block in block_list:
-                result.append(str(block))
-        else:
-            result.append(str(block_list))
-    return result
-
-
 def is_ec2_instance_publicly_accessible(graph, aws_instance):
     aws_instance_attributes = aws_instance.attributes()
     aws_instance_name = aws_instance_attributes['attr']['block_name_'].split('.')[1]
@@ -312,10 +276,12 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         # edges = graph.es
 
         # aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
-        aws_instance_list = graph.vs.select(lambda vertex: vertex["resource_type"] == AWS_INSTANCE or
+        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+                                                           vertex["resource_type"] == AWS_INSTANCE or
                                                            vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
                                                            vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
-                                            )
+                                            ))
+        # todo aj move launch template and launch configuration. use it only when it is connected to an auto scaling group
         for aws_instance in aws_instance_list:
 
             # First check if aws_instance is publicly accessible
