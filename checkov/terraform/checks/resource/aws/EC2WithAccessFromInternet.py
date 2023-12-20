@@ -237,7 +237,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
                                                            vertex["resource_type"] == AWS_INSTANCE
                                                             )
                                             )
@@ -247,7 +247,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             if is_publicly_accessible:
                 return CheckResult.FAILED
 
-        launch_temp_or_launch_conf__list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+        launch_temp_or_launch_conf__list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
                                                                           vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
                                                                           vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
                                                             )

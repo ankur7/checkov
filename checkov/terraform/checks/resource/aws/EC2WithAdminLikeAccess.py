@@ -274,9 +274,23 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
 
         # vertices = graph.vs
         # edges = graph.es
+        # for edge in edges:
+        #     print(f"Edge {edge.index}: {edge.tuple}")
+        #
+        # for ver in graph.vs:
+        #     address = ver['attr'].get('__address__')
+        #     if address:
+        #         pass
+        #         # print(f"Ver Address: {address}.\nCon Address: {conf['__address__']} ")
+        #     else:
+        #         print(ver['attr'].get('block_type_'))
+        #         # print('\n')
+        #         # print(ver['attr'])
+        #         # print(f"BlockName: {ver['attr'].get('block_name_')}")
+        #         # print('\n')
 
         # aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
-        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
                                                            vertex["resource_type"] == AWS_INSTANCE or
                                                            vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
                                                            vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION

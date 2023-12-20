@@ -201,7 +201,7 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        aws_elb_list = graph.vs.select(lambda vertex: vertex['attr']['block_name_'] == conf["__address__"] and (
+        aws_elb_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
                                                       vertex["resource_type"] == AWS_ELB or
                                                       vertex["resource_type"] == AWS_LB_TARGET_GROUP or
                                                       vertex["resource_type"] == AWS_LB
