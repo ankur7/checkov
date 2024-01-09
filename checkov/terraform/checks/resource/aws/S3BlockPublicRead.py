@@ -1,6 +1,7 @@
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
+from checkov.terraform.checks.resource.aws.EC2WithAccessFromInternet import contains_exception_tag
 
 AWS_S3_BUCKET = "aws_s3_bucket"
 PAB_REQUIREMENTS = {
@@ -38,8 +39,10 @@ class S3BlockPublicRead(BaseResourceCheck):
             s3_bucket_attributes = aws_s3_bucket.attributes()
             for pab_setting in PAB_REQUIREMENTS:
                 if not s3_bucket_attributes['attr'].get(pab_setting, None):
-                    return CheckResult.FAILED
-
+                    if contains_exception_tag(aws_s3_bucket, AWS_S3_BUCKET, tag_key="Adobe:DataClassification", tag_value="Public"):
+                        continue
+                    else:
+                        return CheckResult.FAILED
         return result
 
 
