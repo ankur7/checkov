@@ -1,7 +1,7 @@
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.EC2WithAccessFromInternet import contains_exception_tag
+from checkov.terraform.checks.resource.aws.iac_common import contains_exception_tag
 
 AWS_S3_BUCKET = "aws_s3_bucket"
 PAB_REQUIREMENTS = {
