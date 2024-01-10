@@ -128,7 +128,7 @@ def _is_ec2_instance_publicly_accessible(graph, resource_instance: VertexSeq, re
     for security_group in connected_security_groups:
         security_group_attributes = security_group.attributes()
         security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        ingress_list = security_group_attributes['attr']['config_']['aws_security_group'][security_group_name].get('ingress')
+        ingress_list = security_group_attributes['attr']['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
 
         if not ingress_list:
             continue  # no ingress_list, cannot check

@@ -5,7 +5,7 @@ Those common functions that will be used in Kodiak IAC Scanning
 
 import re
 import ipaddress
-from typing import Union, Dict
+from typing import Union, Dict, List
 
 from igraph import VertexSeq
 
@@ -104,7 +104,7 @@ def get_sg_ingress_attributes(ingress: Dict[str, Union[int, str, list]]) -> Dict
     return result
 
 
-def contains_exception_tag(resource_instance: VertexSeq, resource_type: str, tag_key: str, tag_value: str) -> bool:
+def contains_exception_tag(resource_instance: VertexSeq, resource_type: str, tag_key: str, tag_value: Union[str, bool]) -> bool:
     """
     Checks if a resource has a specific tag with the expected value.
 
@@ -220,10 +220,10 @@ def is_tagged_for_exceptions(resource_instance: VertexSeq, resource_type: str, f
     :return: True if the instance is tagged correctly for the exception, False otherwise.
     """
     resource_instance_attributes = resource_instance.attributes()
-    resource_instance_name = resource_instance_attributes['attr']['block_name_'].split('.')[1]
+    resource_instance_name: str = resource_instance_attributes['attr']['block_name_'].split('.')[1]
 
-    resource_instance_tags = resource_instance_attributes['attr']['config_'][resource_type][resource_instance_name][
-        'tags']
+    resource_instance_tags: Union[List, Dict] = resource_instance_attributes['attr']['config_'][resource_type][resource_instance_name].get('tags')
+
     if resource_instance_tags and isinstance(resource_instance_tags, list):
         resource_instance_tags = resource_instance_tags[0]
         tagged_exceptions = generate_tagged_exceptions(resource_instance_tags)
@@ -231,3 +231,4 @@ def is_tagged_for_exceptions(resource_instance: VertexSeq, resource_type: str, f
         for port in range(from_port, to_port + 1):
             if f"{protocol}{port}" in tagged_exceptions:
                 return True
+
