@@ -159,7 +159,7 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         name = "Prevent internet accessible EC2 instances with admin-like profiles"
         id = "CKV_AWS_IDENTITY_0004"
         supported_resources = [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]
-        categories = [CheckCategories.IAM, CheckCategories.EC2]
+        categories = [CheckCategories.IAM]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf):
@@ -227,7 +227,7 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
                     has_admin_actions = get_admin_actions(
                         policy_content_json[0])  # todo aj check if more than 1 item can be present in the dict
                     if has_admin_actions:
-                        if contains_exception_tag(resource_instance, AWS_INSTANCE, tag_key="AllowPublicAdminLike",
+                        if contains_exception_tag(resource_instance, resource_instance['resource_type'], tag_key="AllowPublicAdminLike",
                                                   tag_values=[True, "True"]):
                             continue
                         else:

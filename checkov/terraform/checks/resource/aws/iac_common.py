@@ -256,7 +256,7 @@ def connected_to_auto_scaling_group(graph: Graph, launch_temp_or_launch_conf: Ve
     :return: True if the launch template or launch configuration is connected to an auto scaling group, False otherwise
     """
     connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
-                                     neighbor['resource_type'] == resource_type]
+                                     neighbor['resource_type'] == 'aws_autoscaling_group']
     if connected_auto_scaling_groups:
         return True
     return False
