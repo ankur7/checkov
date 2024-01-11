@@ -1,8 +1,11 @@
 from typing import List
 
+from igraph import Vertex, Graph
+
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.iac_common import flatten, get_sg_ingress_attributes, is_tagged_for_exceptions, contains_exception_tag
+from checkov.terraform.checks.resource.aws.iac_common import flatten, get_sg_ingress_attributes,\
+    is_tagged_for_exceptions, connected_to_auto_scaling_group
 
 
 AWS = 'aws'
@@ -14,7 +17,14 @@ AWS_SECURITY_GROUP = 'aws_security_group'
 AWS_AUTOSCALING_GROUP = 'aws_autoscaling_group'
 
 
-def _is_ec2_instance_publicly_accessible(graph, resource_instance, resource_instance_type):
+def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex, resource_instance_type: str):
+    """
+    Check if the EC2 instance is publicly accessible
+    :param graph:  graph instance
+    :param resource_instance: resource vertex
+    :param resource_instance_type: aws_instance or aws_launch_template or aws_launch_configuration
+    :return: True if the EC2 instance is publicly accessible, False otherwise
+    """
     connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
                                  neighbor['resource_type'] == AWS_SECURITY_GROUP]
 
@@ -45,14 +55,6 @@ def _is_ec2_instance_publicly_accessible(graph, resource_instance, resource_inst
                         continue
                     else:
                         return True
-
-
-def connected_to_auto_scaling_group(graph, launch_temp_or_launch_conf):
-    connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
-                                     neighbor['resource_type'] == AWS_AUTOSCALING_GROUP]
-    if connected_auto_scaling_groups:
-        return True
-    return False
 
 
 class EC2WithAccessFromInternet(BaseResourceCheck):
@@ -90,7 +92,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             )
 
         for launch_template in launch_template_list:
-            if not connected_to_auto_scaling_group(graph, launch_template):
+            if not connected_to_auto_scaling_group(graph, launch_template, AWS_LAUNCH_TEMPLATE):
                 continue
 
             is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, launch_template, AWS_LAUNCH_TEMPLATE)
@@ -104,7 +106,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             )
 
         for launch_configuration in launch_configuration_list:
-            if not connected_to_auto_scaling_group(graph, launch_configuration):
+            if not connected_to_auto_scaling_group(graph, launch_configuration, AWS_LAUNCH_CONFIGURATION):
                 continue
 
             is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, launch_configuration,

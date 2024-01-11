@@ -1,26 +1,24 @@
-import re
+from typing import List, Union, Dict
 
-from typing import List, Union
-
-from igraph import VertexSeq
+from igraph import Vertex, Graph
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.iac_common import flatten, is_public_ip,\
-    get_sg_ingress_attributes, is_tagged_for_exceptions, contains_exception_tag
+from checkov.terraform.checks.resource.aws.iac_common import flatten, is_public_ip, connected_to_auto_scaling_group, \
+    get_sg_ingress_attributes, contains_exception_tag
 
 AWS = 'aws'
 
 AWS_INSTANCE = 'aws_instance'
-AWS_LAUNCH_TEMPLATE = 'aws_launch_template'
-AWS_LAUNCH_CONFIGURATION = 'aws_launch_configuration'
 AWS_IAM_ROLE = 'aws_iam_role'
-AWS_IAM_ROLE_POLICY = 'aws_iam_role_policy'
-AWS_IAM_ROLE_POLICY_ATTACHMENT = 'aws_iam_role_policy_attachment'  # AWS managed policies
 AWS_SECURITY_GROUP = 'aws_security_group'
+AWS_LAUNCH_TEMPLATE = 'aws_launch_template'
+AWS_IAM_ROLE_POLICY = 'aws_iam_role_policy'
+AWS_LAUNCH_CONFIGURATION = 'aws_launch_configuration'
+AWS_IAM_ROLE_POLICY_ATTACHMENT = 'aws_iam_role_policy_attachment'  # AWS managed policies
 
 
-def get_actions_from_statement(statement):
+def get_actions_from_statement(statement: Dict[str, Union[str, List[str]]]):
     """Given a statement dictionary, create
     a list of the actions contained within
     Args:
@@ -54,7 +52,7 @@ def get_actions_from_statement(statement):
     return actions_list
 
 
-def get_admin_actions(policy):
+def get_admin_actions(policy: Dict[str, Union[str, List[str]]]):
     """Takes in a policy and returns the list
     of admin-like actions that it allows
     Args:
@@ -110,7 +108,7 @@ def get_admin_actions(policy):
     return admin_actions
 
 
-def _is_ec2_instance_publicly_accessible(graph, resource_instance: VertexSeq, resource_instance_type: str) -> Union[bool, None]:
+def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex, resource_instance_type: str) -> Union[bool, None]:
     """
     Check if the EC2 instance is publicly accessible based on its connected security groups.
 
@@ -189,34 +187,43 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         #         # print(f"BlockName: {ver['attr'].get('block_name_')}")
         #         # print('\n')
 
-        # aws_instance_list = vertices.select(resource_type=AWS_INSTANCE)
-        aws_instance_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                                                           vertex["resource_type"] == AWS_INSTANCE or
-                                                           vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
-                                                           vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
+        resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+                                                           vertex["resource_type"] == AWS_INSTANCE
                                             ))
-        # todo aj move launch template and launch configuration. use it only when it is connected to an auto scaling group
-        for aws_instance in aws_instance_list:
+
+        aws_lc_or_lt_list: List[Vertex] = graph.vs.select(
+            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+                    vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
+                    vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
+            ))
+
+        resource_list.extend(aws_lc_or_lt_list)
+
+        for resource_instance in resource_list:
+            if resource_instance['resource_type'] in [AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]:
+                if not connected_to_auto_scaling_group(graph, resource_instance, resource_instance['resource_type']):
+                    continue
 
             # First check if aws_instance is publicly accessible
-            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, aws_instance, AWS_INSTANCE)
+            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, resource_instance,
+                                                                          resource_instance['resource_type'])
 
             if not is_publicly_accessible:
                 continue
 
             # EC2 instance is publicly accessible, now check admin like policies
 
-            connected_iam_roles = [neighbor for neighbor in graph.vs[aws_instance.index].neighbors() if
+            connected_iam_roles = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
                                    neighbor['resource_type'] == AWS_IAM_ROLE]
 
             for iam_role in connected_iam_roles:
                 connected_iam_custom_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
                                                  neighbor['resource_type'] == AWS_IAM_ROLE_POLICY]
 
-                # For iam policy, we need to first describe the policy then check it's JSON. Cannot be done without making call.to AWS account
-                # Cannot be done
-                connected_iam_aws_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
-                                              neighbor['resource_type'] == AWS_IAM_ROLE_POLICY_ATTACHMENT]
+                # For iam policy, we need to first describe the policy then check it's JSON. Cannot be done without
+                # making call to AWS account. So, skipping this check for now.
+                # connected_iam_aws_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
+                #                               neighbor['resource_type'] == AWS_IAM_ROLE_POLICY_ATTACHMENT]
 
                 for policy in connected_iam_custom_policies:
                     policy_attributes = policy.attributes()
@@ -226,7 +233,8 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
                     has_admin_actions = get_admin_actions(
                         policy_content_json[0])  # todo aj check if more than 1 item can be present in the dict
                     if has_admin_actions:
-                        if contains_exception_tag(aws_instance, AWS_INSTANCE, tag_key="AllowPublicAdminLike", tag_value=True):
+                        if contains_exception_tag(resource_instance, AWS_INSTANCE, tag_key="AllowPublicAdminLike",
+                                                  tag_values=[True, "True"]):
                             continue
                         else:
                             return CheckResult.FAILED

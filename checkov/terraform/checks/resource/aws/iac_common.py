@@ -7,7 +7,7 @@ import re
 import ipaddress
 from typing import Union, Dict, List
 
-from igraph import VertexSeq
+from igraph import Graph, Vertex
 
 
 PUBLIC_PORT_TAG_KEYS = [
@@ -24,6 +24,11 @@ JUSTIFICATION_TAG_KEYS = [
 
 
 def flatten(ingress_list):
+    """
+    Flatten the ingress list
+    :param ingress_list:  Ingress list
+    :return:  Flattened ingress list
+    """
     result = []
     for ingress in ingress_list:
         if isinstance(ingress, list):
@@ -33,7 +38,12 @@ def flatten(ingress_list):
     return result
 
 
-def flatten_cidr_blocks(cidr_blocks):
+def flatten_cidr_blocks(cidr_blocks) -> List[str]:
+    """
+    Flatten the CIDR blocks list
+    :param cidr_blocks: CIDR blocks list
+    :return: Flattened CIDR blocks list
+    """
     result = []
     for block_list in cidr_blocks:
         if isinstance(block_list, list):
@@ -44,7 +54,7 @@ def flatten_cidr_blocks(cidr_blocks):
     return result
 
 
-def is_public_ip(input_value):
+def is_public_ip(input_value) -> bool:
     """
     Checks if the input IP/CIDR is public IP or not.
     0.0.0.0/0 -> True
@@ -104,7 +114,7 @@ def get_sg_ingress_attributes(ingress: Dict[str, Union[int, str, list]]) -> Dict
     return result
 
 
-def contains_exception_tag(resource_instance: VertexSeq, resource_type: str, tag_key: str, tag_value: Union[str, bool]) -> bool:
+def contains_exception_tag(resource_instance: Vertex, resource_type: str, tag_key: str, tag_values: List<Union[str, bool]>) -> bool:
     """
     Checks if a resource has a specific tag with the expected value.
 
@@ -112,7 +122,7 @@ def contains_exception_tag(resource_instance: VertexSeq, resource_type: str, tag
         resource_instance: The resource to check.
         resource_type: The type of the resource.
         tag_key: The key of the tag to check.
-        tag_value: The expected value of the tag.
+        tag_values: One of the expected value of the tag. Handles both string and boolean values. eg. [True, 'True']
 
     Returns:
         True if the resource has the tag with the expected value, False otherwise.
@@ -128,10 +138,15 @@ def contains_exception_tag(resource_instance: VertexSeq, resource_type: str, tag
     if isinstance(tags, list):
         tags = tags[0]
 
-    return tag_key in tags and tags[tag_key] == tag_value
+    return tag_key in tags and tags[tag_key] in tag_values
 
 
-def generate_tagged_exceptions(tags: dict):
+def generate_tagged_exceptions(tags: dict) -> dict:
+    """
+    Generates a dictionary of exceptions from the tags of a resource.
+    :param tags: The tags of the resource.
+    :return: A dictionary of exceptions.
+    """
     # print("Generating tagged exceptions")
 
     publicPortString = ""
@@ -207,7 +222,7 @@ def generate_tagged_exceptions(tags: dict):
     return exceptions
 
 
-def is_tagged_for_exceptions(resource_instance: VertexSeq, resource_type: str, from_port: int, to_port: int,
+def is_tagged_for_exceptions(resource_instance: Vertex, resource_type: str, from_port: int, to_port: int,
                              protocol: str) -> Union[bool, None]:
     """
     Check if the AWS Instance has the correct tags for the exception.
@@ -232,3 +247,16 @@ def is_tagged_for_exceptions(resource_instance: VertexSeq, resource_type: str, f
             if f"{protocol}{port}" in tagged_exceptions:
                 return True
 
+
+def connected_to_auto_scaling_group(graph: Graph, launch_temp_or_launch_conf: Vertex, resource_type: str) -> bool:
+    """
+    Check if the launch template or launch configuration is connected to an auto scaling group
+    :param graph: graph instance
+    :param launch_temp_or_launch_conf: launch template or launch configuration vertex
+    :return: True if the launch template or launch configuration is connected to an auto scaling group, False otherwise
+    """
+    connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
+                                     neighbor['resource_type'] == resource_type]
+    if connected_auto_scaling_groups:
+        return True
+    return False

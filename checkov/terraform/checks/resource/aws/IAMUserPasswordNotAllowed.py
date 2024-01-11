@@ -18,6 +18,13 @@ class IAMUserPasswordNotAllowed(BaseResourceCheck):
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf: dict[str, list[Any]]) -> CheckResult:
+        """
+        Looks for password login profile for IAM users
+        In this check we are looking for the presence of a password login profile: aws_iam_user_login_profile
+        If it exists then it means that Console password is present for that iam user and the check fails
+        :param conf: aws_iam_user configuration
+        :return: <CheckResult>
+        """
         result = CheckResult.PASSED
         all_graphs = conf.get('runner_filter_all_graphs', None)
         if all_graphs:

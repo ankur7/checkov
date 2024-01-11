@@ -39,7 +39,8 @@ class S3BlockPublicRead(BaseResourceCheck):
             s3_bucket_attributes = aws_s3_bucket.attributes()
             for pab_setting in PAB_REQUIREMENTS:
                 if not s3_bucket_attributes['attr'].get(pab_setting, None):
-                    if contains_exception_tag(aws_s3_bucket, AWS_S3_BUCKET, tag_key="Adobe:DataClassification", tag_value="Public"):
+                    if contains_exception_tag(aws_s3_bucket, AWS_S3_BUCKET, tag_key="Adobe:DataClassification",
+                                              tag_values=["Public"]):
                         continue
                     else:
                         return CheckResult.FAILED
