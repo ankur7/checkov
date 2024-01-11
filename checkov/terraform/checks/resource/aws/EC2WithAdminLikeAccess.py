@@ -159,7 +159,7 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         name = "Prevent internet accessible EC2 instances with admin-like profiles"
         id = "CKV_AWS_IDENTITY_0004"
         supported_resources = [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]
-        categories = [CheckCategories.IAM]
+        categories = [CheckCategories.IAM, CheckCategories.EC2]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
     def scan_resource_conf(self, conf):
@@ -188,16 +188,10 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         #         # print('\n')
 
         resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                                                           vertex["resource_type"] == AWS_INSTANCE
+                                                           vertex["resource_type"] == AWS_INSTANCE or
+                                                           vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
+                                                           vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
                                             ))
-
-        aws_lc_or_lt_list: List[Vertex] = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                    vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
-                    vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
-            ))
-
-        resource_list.extend(aws_lc_or_lt_list)
 
         for resource_instance in resource_list:
             if resource_instance['resource_type'] in [AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]:
