@@ -114,7 +114,7 @@ def get_sg_ingress_attributes(ingress: Dict[str, Union[int, str, list]]) -> Dict
     return result
 
 
-def contains_exception_tag(resource_instance: Vertex, resource_type: str, tag_key: str, tag_values: List<Union[str, bool]>) -> bool:
+def contains_exception_tag(resource_instance: Vertex, resource_type: str, tag_key: str, tag_values: List[Union[str, bool]]) -> bool:
     """
     Checks if a resource has a specific tag with the expected value.
 
