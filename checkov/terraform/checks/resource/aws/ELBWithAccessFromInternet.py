@@ -1,7 +1,7 @@
 import re
 from typing import List
 
-from igraph import VertexSeq
+from igraph import Vertex
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
@@ -14,7 +14,7 @@ AWS_LB = 'aws_lb'    # Application Load Balancer
 AWS_SECURITY_GROUP = 'aws_security_group'
 
 
-def _is_elb_publicly_accessible(graph, resource_instance: VertexSeq, resource_instance_type: str):
+def _is_elb_publicly_accessible(graph, resource_instance: Vertex, resource_instance_type: str):
 
     connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
                                  neighbor['resource_type'] == AWS_SECURITY_GROUP]
