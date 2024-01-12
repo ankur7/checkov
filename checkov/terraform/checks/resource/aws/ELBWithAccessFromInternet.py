@@ -14,7 +14,7 @@ AWS_LB = 'aws_lb'    # Application Load Balancer
 AWS_SECURITY_GROUP = 'aws_security_group'
 
 
-def _is_elb_publicly_accessible(graph, resource_instance: Vertex, resource_instance_type: str):
+def _is_elb_publicly_accessible(graph, resource_instance: Vertex, resource_instance_type: str) -> bool:
 
     connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
                                  neighbor['resource_type'] == AWS_SECURITY_GROUP]
@@ -60,7 +60,7 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
         categories = [CheckCategories.LOGGING]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
-    def scan_resource_conf(self, conf):
+    def scan_resource_conf(self, conf) -> CheckResult:
         result = CheckResult.PASSED
         all_graphs = conf.get('runner_filter_all_graphs', None)
         if all_graphs:
