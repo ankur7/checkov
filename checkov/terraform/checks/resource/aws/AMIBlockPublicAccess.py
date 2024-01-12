@@ -20,7 +20,7 @@ class AMIBlockPublicAccess(BaseResourceCheck):
     def __init__(self):
         """
         Two ways to make an AMI public:
-        1. Setting public = true in aws_ami resource
+        1. Setting public = True in aws_ami resource
         2. Adding a launch_permission with 'all' as the group
         https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ami_launch_permission
         """

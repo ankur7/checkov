@@ -8,10 +8,14 @@ AWS_LAMBDA_PERMISSION = 'aws_lambda_permission'
 
 
 class LambdaBlockPublicAccess(BaseResourceCheck):
+    """
+        Looks for block public access configuration at aws_lambda_function
+        https://docs.aws.amazon.com/lambda/latest/dg/access-control-resource-based.html
+    """
     def __init__(self) -> None:
         name = "Block public access to Lambda functions"
         id = "CKV_AWS_SERVICE_0001"
-        supported_resources = ["aws_lambda_function"]
+        supported_resources = [AWS_LAMBDA_FUNCTION]
         categories = [CheckCategories.SECRETS]
         super().__init__(name=name, id=id, categories=categories, supported_resources=supported_resources)
 
