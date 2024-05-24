@@ -53,6 +53,13 @@ There are three resulting states that can occur when calling this function:
                               the data of this object can be changed according to the loader logic
         :return: A ModuleContent object which may or may not being loaded.
         """
+
+        import traceback
+        stack_trace = traceback.format_stack()
+        print('fffff\n')
+        print("".join(stack_trace))
+        # exit(1)
+
         self.discover(module_params)
         if not self._is_matching_loader(module_params):
             return ModuleContent(dir=None)
@@ -61,9 +68,25 @@ There are three resulting states that can occur when calling this function:
         if os.path.exists(module_path):
             return ModuleContent(dir=module_path)
 
-        self.logger.debug(f"Using {self.__class__.__name__} attempting to get module "
-                          f"{module_params.module_source if '@' not in module_params.module_source else module_params.module_source.split('@')[1]} "
-                          f"version: {module_params.version}")
+        print(f"Using {self.__class__.__name__} attempting to get module "
+              f"{module_params.module_source if '@' not in module_params.module_source else module_params.module_source.split('@')[1]} "
+              f"version: {module_params.version}")
+
+        print("jaju Current Path:", os.getcwd(), '\n')
+
+        try:
+            import sys
+            import subprocess
+            from pkg_resources import resource_filename
+
+            cello_path = resource_filename(__name__, 'cello.py')
+            print(cello_path)
+            print(sys.executable)
+            subprocess.run([sys.executable, cello_path])
+        except Exception as ex:
+            print('lalala:', ex)
+
+
         return self._load_module(module_params)
 
     @abstractmethod

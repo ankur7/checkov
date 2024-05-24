@@ -18,6 +18,13 @@ import argcomplete
 import configargparse
 from urllib3.exceptions import MaxRetryError
 
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add the parent directory to sys.path
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 import checkov.logging_init  # noqa  # should be imported before the others to ensure correct logging setup
 from checkov.ansible.runner import Runner as ansible_runner
 from checkov.argo_workflows.runner import Runner as argo_workflows_runner
@@ -510,6 +517,7 @@ class Checkov:
             if self.config.directory:
                 exit_codes = []
                 for root_folder in self.config.directory:
+                    # ankur, this is the absolute path of the directory which is passed as an argument for downloading
                     absolute_root_folder = os.path.abspath(root_folder)
                     if not os.path.exists(root_folder):
                         logger.error(f'Directory {root_folder} does not exist; skipping it')

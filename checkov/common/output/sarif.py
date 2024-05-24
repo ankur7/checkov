@@ -270,8 +270,15 @@ class Sarif:
 
     def write_sarif_output(self) -> None:
         try:
-            with open("results.sarif", "w") as f:
-                f.write(json.dumps(self.json))
+            # with open("results.sarif", "w") as f:
+            with open("results.sarif", "a") as f:  # todo ANKUR REVERT THIS
+                # print('ankur', sarif_results)
+                valid_results = self.json['runs'][0]['results']
+                if valid_results:
+                    f.write(json.dumps(valid_results))
+                    f.write("\n\n")
+
+                # f.write(json.dumps(self.json))
                 print("\nWrote output in SARIF format to the file 'results.sarif'")
         except EnvironmentError as e:
             print("\nAn error occurred while writing SARIF results to file: results.sarif")

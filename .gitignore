@@ -179,3 +179,4 @@ tests/console
 checkov/sast_core/vendor
 
 *.prof
+docs/important_commands
