@@ -12,7 +12,7 @@ from parameterized import parameterized_class
 # do not remove - prevents circular import
 from checkov.common.bridgecrew.check_type import CheckType
 from checkov.common.bridgecrew.severities import BcSeverities, Severities
-from checkov.common.graph.db_connectors.igraph.igraph_db_connector import IgraphConnector
+from checkov.common.checks.base_check_registry import BaseCheckRegistry
 from checkov.common.graph.db_connectors.networkx.networkx_db_connector import NetworkxConnector
 from checkov.common.graph.db_connectors.rustworkx.rustworkx_db_connector import RustworkxConnector
 from checkov.common.models.enums import CheckCategories, CheckResult
@@ -23,15 +23,27 @@ from checkov.terraform.plan_runner import Runner, resource_registry
 
 
 @parameterized_class([
-   {"db_connector": NetworkxConnector},
-   {"db_connector": IgraphConnector},
+    {"db_connector": NetworkxConnector},
     {"db_connector": RustworkxConnector},
 ])
 class TestRunnerValid(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.orig_checks = deepcopy(resource_registry.checks)
+        cls.orig_all_registered_checks = deepcopy(BaseCheckRegistry._BaseCheckRegistry__all_registered_checks)
         cls.db_connector = cls.db_connector
+
+    def test_py_graph_check(self):
+        if not self.db_connector == RustworkxConnector:
+            return
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        valid_dir_path = current_dir + "/resources/py_graph_check_tf_plan"
+        valid_dir_path_for_external_check = current_dir + '/py_check_tf_plan'
+        runner = Runner(db_connector=self.db_connector())
+        checks_allowlist = ['CKV_AWS_99999']
+        report = runner.run(root_folder=valid_dir_path, external_checks_dir=[valid_dir_path_for_external_check],
+                            runner_filter=RunnerFilter(framework=["terraform_plan"], checks=checks_allowlist))
+        assert len(report.passed_checks) == 3
 
     def test_runner_two_checks_only(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -224,6 +236,27 @@ class TestRunnerValid(unittest.TestCase):
 
         all_checks = report.failed_checks + report.passed_checks
         self.assertTrue(any(c.check_id == custom_check_id for c in all_checks))
+
+    def test_plan_runner_with_empty_vpc_connection(self):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        valid_plan_path = current_dir + "/resources/plan/tfplan.json"
+        runner = Runner()
+        runner.graph_registry.checks = []
+
+        report = runner.run(
+            root_folder=None,
+            files=[valid_plan_path],
+            external_checks_dir=None,
+            runner_filter=RunnerFilter(framework=["all"]),
+        )
+        report_json = report.get_json()
+        self.assertIsInstance(report_json, str)
+        self.assertIsNotNone(report_json)
+        self.assertIsNotNone(report.get_test_suite())
+        self.assertEqual(report.get_exit_code({'soft_fail': False, 'soft_fail_checks': [], 'soft_fail_threshold': None, 'hard_fail_checks': [], 'hard_fail_threshold': None}), 1)
+        self.assertEqual(report.get_exit_code({'soft_fail': True, 'soft_fail_checks': [], 'soft_fail_threshold': None, 'hard_fail_checks': [], 'hard_fail_threshold': None}), 0)
+
+        self.assertEqual(report.get_summary()["failed"], 106)
 
     def test_runner_child_modules(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -815,7 +848,7 @@ class TestRunnerValid(unittest.TestCase):
             self.assertIn(check.resource, valid_resources_ids)
 
         self.assertEqual(len(report.resources), 3)
-        
+
     def test_plan_resources_created_by_modules(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         valid_plan_path = current_dir + "/extra_tf_plan_checks/modules.json"
@@ -826,12 +859,12 @@ class TestRunnerValid(unittest.TestCase):
         )
         passed_checks_CKV2_GCP_12 = [check for check in report.passed_checks if check.check_id == 'CKV2_GCP_12']
         passed_checks_CKV_GCP_88 = [check for check in report.passed_checks if check.check_id == 'CKV_GCP_88']
-        
+
         assert passed_checks_CKV2_GCP_12[0].resource == 'module.achia_test_valid_443.google_compute_firewall.custom[0]'
         assert passed_checks_CKV2_GCP_12[1].resource == 'module.achia_test_valid_ports.google_compute_firewall.custom[0]'
         assert passed_checks_CKV2_GCP_12[2].resource == 'module.achia_test_violating_no_ports.google_compute_firewall.custom[0]'
         assert passed_checks_CKV2_GCP_12[3].resource == 'module.achia_test_violating_port.google_compute_firewall.custom[0]'
-        
+
         assert passed_checks_CKV_GCP_88[0].resource == 'module.achia_test_valid_443.google_compute_firewall.custom[0]'
         assert passed_checks_CKV_GCP_88[1].resource == 'module.achia_test_valid_ports.google_compute_firewall.custom[0]'
         assert passed_checks_CKV_GCP_88[2].resource == 'module.achia_test_violating_no_ports.google_compute_firewall.custom[0]'
@@ -881,6 +914,7 @@ class TestRunnerValid(unittest.TestCase):
 
     def tearDown(self) -> None:
         resource_registry.checks = deepcopy(self.orig_checks)
+        BaseCheckRegistry._BaseCheckRegistry__all_registered_checks = deepcopy(self.orig_all_registered_checks)
 
 
 if __name__ == "__main__":

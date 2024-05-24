@@ -8,6 +8,7 @@ from typing import Any, TYPE_CHECKING, Optional
 from typing_extensions import TypeAlias  # noqa[TC002]
 
 from checkov.common.bridgecrew.check_type import CheckType
+from checkov.common.checks.base_check_registry import BaseCheckRegistry
 from checkov.common.graph.checks_infra.registry import BaseRegistry
 from checkov.common.graph.graph_builder.consts import GraphSource
 from checkov.common.output.extra_resource import ExtraResource
@@ -137,8 +138,8 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
         report.add_parsing_errors(parsing_errors.keys())
 
         if self.all_graphs:
-            for igraph_graph, _ in self.all_graphs:
-                graph_report = self.get_graph_checks_report(root_folder, runner_filter, graph=igraph_graph)
+            for single_graph, _ in self.all_graphs:  # type: ignore  # Due to issue with rustworkx typing
+                graph_report = self.get_graph_checks_report(root_folder, runner_filter, graph=single_graph)
                 merge_reports(report, graph_report)
         else:
             graph_report = self.get_graph_checks_report(root_folder, runner_filter)
@@ -189,15 +190,15 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
         self.definitions = {}
         self.breadcrumbs = {}
         self.all_graphs = []
-        for subgraph_path, graph in local_graphs:
-            for vertex in graph.vertices:
+        for subgraph_path, local_graph in local_graphs:
+            for vertex in local_graph.vertices:
                 if vertex.block_type == BlockType.RESOURCE:
                     vertex_id = vertex.attributes.get(CustomAttributes.TF_RESOURCE_ADDRESS)
                     report.add_resource(f"{vertex.path}:{vertex_id}")
-            igraph_graph = self.graph_manager.save_graph(graph)
-            self.all_graphs.append((igraph_graph, subgraph_path))
+            graph = self.graph_manager.save_graph(local_graph)
+            self.all_graphs.append((graph, subgraph_path))
             current_definitions, current_breadcrumbs = convert_graph_vertices_to_tf_definitions(
-                graph.vertices,
+                local_graph.vertices,
                 root_folder,
             )
             self.definitions.update(current_definitions)
@@ -398,6 +399,7 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
                 entity_evaluations = BaseVariableEvaluation.reduce_entity_evaluations(
                     variables_evaluations, entity_context_path
                 )
+            self._assign_correct_graph_to_registry(registry, scanned_file)
             results = registry.scan(scanned_file, entity, skipped_checks, runner_filter)
             absolute_scanned_file_path = get_abs_path(full_file_path)
             # This duplicates a call at the start of scan, but adding this here seems better than kludging with some tuple return type
@@ -451,6 +453,19 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
                             resource=entity_id,
                         )
                     )
+
+    def _assign_correct_graph_to_registry(self, registry: BaseCheckRegistry, scanned_file: str) -> None:
+        registry.graph = None
+        if self.all_graphs and isinstance(self.all_graphs, list):
+            if len(self.all_graphs) == 1:
+                graph_obj = self.all_graphs[0]
+                if graph_obj and isinstance(graph_obj, tuple):
+                    registry.graph = graph_obj[0]  # type: ignore[assignment]
+            else:
+                for graph_obj in self.all_graphs:
+                    if isinstance(graph_obj, tuple) and isinstance(graph_obj[1], str) and scanned_file.startswith(graph_obj[1]):
+                        registry.graph = graph_obj[0]  # type: ignore[assignment]
+                        break
 
     def get_entity_context_and_evaluations(self, entity: dict[str, Any]) -> dict[str, Any] | None:
         block_type = entity[CustomAttributes.BLOCK_TYPE]

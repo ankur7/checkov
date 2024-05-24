@@ -22,6 +22,9 @@ class TestYamlPolicies(unittest.TestCase):
         warnings.filterwarnings("ignore", category=ResourceWarning)
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+    def test_DatabricksWorkspaceDBFSRootCustomerManagedKey(self):
+        self.go("DatabricksWorkspaceDBFSRootEncryptedWithCustomerManagedKey")
+
     def test_KmsKeyPolicyIsDefined(self):
         self.go("KmsKeyPolicyIsDefined")
 
@@ -148,6 +151,30 @@ class TestYamlPolicies(unittest.TestCase):
     def test_GCPProjectHasNoLegacyNetworks(self):
         self.go("GCPProjectHasNoLegacyNetworks")
 
+    def test_GCPDocumentAIProcessorEncryptedWithCMK(self):
+        self.go("GCPDocumentAIProcessorEncryptedWithCMK")
+
+    def test_GCPDocumentAIWarehouseLocationEncryptedWithCMK(self):
+        self.go("GCPDocumentAIWarehouseLocationEncryptedWithCMK")
+
+    def test_GCPVertexInstanceEncryptedWithCMK(self):
+        self.go("GCPVertexInstanceEncryptedWithCMK")
+    
+    def test_GCPVertexAIEndpointEncryptedWithCMK(self):
+        self.go("GCPVertexAIEndpointEncryptedWithCMK")
+
+    def test_GCPVertexAIFeaturestoreEncryptedWithCMK(self):
+        self.go("GCPVertexAIFeaturestoreEncryptedWithCMK")
+
+    def test_GCPVertexAITensorboardEncryptedWithCMK(self):
+        self.go("GCPVertexAITensorboardEncryptedWithCMK")
+
+    def test_GCPVertexWorkbenchInstanceEncryptedWithCMK(self):
+        self.go("GCPVertexWorkbenchInstanceEncryptedWithCMK")
+
+    def test_GCPVertexWorkbenchInstanceNoPublicIp(self):
+        self.go("GCPVertexWorkbenchInstanceNoPublicIp")
+        
     def test_GCRContainerVulnerabilityScanningEnabled(self):
         self.go("GCRContainerVulnerabilityScanningEnabled")    
 
@@ -300,6 +327,30 @@ class TestYamlPolicies(unittest.TestCase):
 
     def test_GCPContainerRegistryReposAreNotPubliclyAccessible(self):
         self.go("GCPContainerRegistryReposAreNotPubliclyAccessible")
+    
+    def test_GCPDialogFlowAgentLoggingEnabled(self):
+        self.go("GCPDialogFlowAgentLoggingEnabled")
+    
+    def test_GCPDialogFlowCxAgentLoggingEnabled(self):
+        self.go("GCPDialogFlowCxAgentLoggingEnabled")
+
+    def test_GCPDialogFlowCxWebhookLoggingEnabled(self):
+        self.go("GCPDialogFlowCxWebhookLoggingEnabled")
+
+    def test_GCPVertexAIPrivateEndpoint(self):
+        self.go("GCPVertexAIPrivateEndpoint")
+    
+    def test_GCPVertexAIPrivateIndexEndpoint(self):
+        self.go("GCPVertexAIPrivateIndexEndpoint")
+
+    def test_GCPTpuV2VmPrivateEndpoint(self):
+        self.go("GCPTpuV2VmPrivateEndpoint")
+    
+    def test_GCPVertexRuntimePrivate(self):
+        self.go("GCPVertexRuntimePrivate")
+
+    def test_GCPVertexRuntimeEncryptedWithCMK(self):
+        self.go("GCPVertexRuntimeEncryptedWithCMK")
 
     def test_S3BucketVersioning(self):
         self.go("S3BucketVersioning")
@@ -447,6 +498,24 @@ class TestYamlPolicies(unittest.TestCase):
 
     def test_IBM_VPCclassicAccessIsDisabled(self):
         self.go("IBM_VPCclassicAccessIsDisabled")
+
+    def test_IBM_RestrictServiceIDCreationInAccountSettings(self):
+        self.go("IBM_RestrictServiceIDCreationInAccountSettings")
+
+    def test_IBM_EnableMFAatAccountLevel(self):
+        self.go("IBM_EnableMFAatAccountLevel")
+
+    def test_IBM_RestrictAPIkeyCreationInAccountSettings(self):
+        self.go("IBM_RestrictAPIkeyCreationInAccountSettings")
+
+    def test_IBM_DatabasesNWaccessRestrictedToSpecificIPrange(self):
+        self.go("IBM_DatabasesNWaccessRestrictedToSpecificIPrange")
+
+    def test_IBM_K8sClustersAccessibleViaPrivateEndPt(self):
+        self.go("IBM_K8sClustersAccessibleViaPrivateEndPt")
+
+    def test_S3CMKRegularRotation(self):
+        self.go("S3CMKRegularRotation")
 
     def test_registry_load(self):
         registry = Registry(parser=GraphCheckParser(), checks_dir=str(

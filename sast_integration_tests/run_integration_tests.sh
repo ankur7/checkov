@@ -13,9 +13,13 @@ set -e
 
 set_env_vars() {
   export SAST_ARTIFACT_PATH=""
-  export BC_KEY_KEY=""
+  export BC_API_KEY=""
   export LOG_LEVEL=DEBUG
-  export BC_API_URL="https://www.bridgecrew.cloud"
+  export PRISMA_API_URL="https://api0.prismacloud.io"
+}
+
+set_env_vars_local_sast_report() {
+  export SAVE_SAST_REPORT_LOCALLY=TRUE
 }
 
 prepare_data () {
@@ -44,15 +48,17 @@ delete_reports () {
 
 #set_env_vars
 
+set_env_vars_local_sast_report
+
 echo $BC_API_KEY
 if [[ -z "BC_API_KEY" ]]; then
    echo "BC_API_KEY is missing."
    exit 1
 fi
 
-echo $BC_API_URL
-if [[ -z "$BC_API_URL" ]]; then
-   echo "BC_API_URL is missing."
+echo $PRISMA_API_URL
+if [[ -z "PRISMA_API_URL" ]]; then
+   echo "PRISMA_API_URL is missing."
    exit 1
 fi
 

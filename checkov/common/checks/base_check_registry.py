@@ -38,6 +38,7 @@ class BaseCheckRegistry:
         self.check_id_allowlist: Optional[List[str]] = None
         self.report_type = report_type
         self.definitions_raw: list[tuple[int, str]] | None = None
+        self.graph = None
 
     def register(self, check: BaseCheck) -> None:
         # IMPLEMENTATION NOTE: Checks are registered when the script is loaded
@@ -149,6 +150,7 @@ class BaseCheckRegistry:
         runner_filter: RunnerFilter
     ) -> _CheckResult:
         self.logger.debug("Running check: {} on file {}".format(check.name, scanned_file))
+        check.graph = self.graph
         try:
             result = check.run(
                 scanned_file=scanned_file,

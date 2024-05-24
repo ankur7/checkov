@@ -11,7 +11,8 @@ class TestSecrets(unittest.TestCase):
             'AKIAIOSFODNN7EXAMPLE',  # checkov:skip=CKV_SECRET_2 test secret
             'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',  # checkov:skip=CKV_SECRET_6 test secret
             '-----BEGIN RSA PRIVATE KEY-----\n',  # checkov:skip=CKV_SECRET_13 test secret
-            'Hello from Bridgecrew'
+            'Hello from Bridgecrew',
+            'cert-manager.io/secret: org/repo',
         ]
 
         # check that no category checks all
@@ -43,7 +44,7 @@ class TestSecrets(unittest.TestCase):
 
         censored_line = omit_secret_value_from_line(secret, line)
 
-        self.assertEqual(censored_line, 'access_key: "AKIAI***************"')
+        self.assertEqual(censored_line, 'access_key: "AKIAI**********"')
 
     def test_omit_none_secret_from_line(self):
         line = 'text'
@@ -61,7 +62,7 @@ class TestSecrets(unittest.TestCase):
 
         censored_line = omit_secret_value_from_line(secret, line)
 
-        self.assertEqual(censored_line, 'access_key: "123456*********************************************************"')
+        self.assertEqual(censored_line, 'access_key: "123456**********"')
 
     def test_get_secrets_from_secrets(self):
         s = 'access_key: "AKIAIOSFODNN7EXAMPLE"'

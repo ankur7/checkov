@@ -9,6 +9,12 @@ definition:
         - "aws_route_table"
       attribute: "route.*.vpc_peering_connection_id"
       operator: "not_exists"
+    - cond_type: "attribute"
+      resource_types:
+        - "aws_route_table"
+      attribute: "route.*.vpc_peering_connection_id"
+      operator: "equals"
+      value: ""
     - and:
         - cond_type: "attribute"
           resource_types:
@@ -18,27 +24,21 @@ definition:
           value: "0.0.0.0/0"
         - cond_type: "attribute"
           resource_types:
-          - "aws_route_table"
-          attribute: "route.*.cidr_block"
-          operator: "not_contains"
-          value: "0.0.0.0"
-        - cond_type: "attribute"
-          resource_types:
             - "aws_route_table"
           attribute: "route.*.ipv6_cidr_block"
           operator: "not_contains"
-          value: "::0"
-        - cond_type: "attribute"
-          resource_types:
-            - "aws_route_table"
-          attribute: "route.*.ipv6_cidr_block"
-          operator: "not_contains"
-          value: "::/0"  
+          value: "::/0"
     - cond_type: "attribute"
       resource_types:
         - "aws_route"
-      attribute: "vpc_peering_connection_id"          
+      attribute: "vpc_peering_connection_id"
       operator: "not_exists"
+    - cond_type: "attribute"
+      resource_types:
+        - "aws_route"
+      attribute: "vpc_peering_connection_id"
+      operator: "equals"
+      value: ""
     - and:
         - cond_type: "attribute"
           resource_types:
@@ -46,18 +46,6 @@ definition:
           attribute: "destination_cidr_block"
           operator: "not_contains"
           value: "0.0.0.0/0"
-        - cond_type: "attribute"
-          resource_types:
-          - "aws_route"
-          attribute: "destination_cidr_block"
-          operator: "not_contains"
-          value: "0.0.0.0"
-        - cond_type: "attribute"
-          resource_types:
-            - "aws_route"
-          attribute: "destination_ipv6_cidr_block"
-          operator: "not_contains"
-          value: "::0"
         - cond_type: "attribute"
           resource_types:
             - "aws_route"
