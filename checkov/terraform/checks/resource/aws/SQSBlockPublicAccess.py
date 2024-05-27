@@ -4,6 +4,8 @@ from igraph import Vertex
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
+from checkov.terraform.checks.resource.aws.iac_common import filter_nodes_by_resource_type, CustomVertex, \
+    find_neighbors_with_resource_type
 
 #
 AWS_SQS_QUEUE = 'aws_sqs_queue'
@@ -45,16 +47,21 @@ class SQSBlockPublicAccess(BaseResourceCheck):
         else:
             return result
 
-        aws_sqs_queue_list: List[Vertex] = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"]
-                           and (vertex["resource_type"] == AWS_SQS_QUEUE)
-            )
+        aws_sqs_queue_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_SQS_QUEUE])
 
-        for aws_sqs_queue in aws_sqs_queue_list:
-            aws_sqs_queue_policy_list = [neighbor for neighbor in graph.vs[aws_sqs_queue.index].neighbors() if
-                                         neighbor['resource_type'] == AWS_SQS_QUEUE_POLICY]
-            for aws_sqs_queue_policy in aws_sqs_queue_policy_list:
-                policy = aws_sqs_queue_policy['attr'].get('policy', [{}])
+        # aws_sqs_queue_list: List[Vertex] = graph.vs.select(
+        #     lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"])
+        #                    and (vertex["resource_type"] == AWS_SQS_QUEUE)
+        #     )
+
+        for custom_vertex in aws_sqs_queue_list:
+            # aws_sqs_queue_policy_list = [neighbor for neighbor in graph.vs[aws_sqs_queue.index].neighbors() if
+            #                              neighbor['resource_type'] == AWS_SQS_QUEUE_POLICY]
+
+            aws_sqs_queue_policy_list: list[CustomVertex] = find_neighbors_with_resource_type(graph, custom_vertex, AWS_SQS_QUEUE_POLICY)
+            for custom_vertex1 in aws_sqs_queue_policy_list:
+                aws_sqs_queue_policy = custom_vertex1.node_data
+                policy = aws_sqs_queue_policy.get('policy', [{}])
                 if does_policy_allow_public_access(policy):
                     return CheckResult.FAILED
 

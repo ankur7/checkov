@@ -81,12 +81,12 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             return result
 
         # aws_instance_list = graph.vs.select(
-        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #     lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
         #             vertex["resource_type"] == AWS_INSTANCE
         #     )
         #     )
 
-        aws_instance_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_INSTANCE])
+        aws_instance_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_INSTANCE])
 
         for custom_vertex in aws_instance_list:
             is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, custom_vertex, AWS_INSTANCE)
@@ -94,12 +94,12 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
                 return CheckResult.FAILED
 
         # launch_template_list = graph.vs.select(
-        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #     lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
         #             vertex["resource_type"] == AWS_LAUNCH_TEMPLATE
         #     )
         #     )
 
-        launch_template_list = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_LAUNCH_TEMPLATE])
+        launch_template_list = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_LAUNCH_TEMPLATE])
 
         for launch_template in launch_template_list:
             if not connected_to_auto_scaling_group(graph, launch_template, AWS_LAUNCH_TEMPLATE):
@@ -110,7 +110,7 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
                 return CheckResult.FAILED
 
         launch_configuration_list = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+            lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
                     vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
             )
             )

@@ -8,7 +8,6 @@ import ipaddress
 from typing import Union, Dict, List, Any
 
 import rustworkx as rx
-# from igraph import Graph, Vertex # todo aj move from igraph to rustworkx
 
 
 PUBLIC_PORT_TAG_KEYS = [
@@ -265,7 +264,7 @@ def connected_to_auto_scaling_group(graph: rx.PyDiGraph, launch_temp_or_launch_c
     # connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
     #                                  neighbor['resource_type'] == 'aws_autoscaling_group']
 
-    connected_auto_scaling_groups = find_neighbors_with_resource_type(graph, launch_temp_or_launch_conf, 'aws_autoscaling_group')
+    connected_auto_scaling_groups: List[CustomVertex] = find_neighbors_with_resource_type(graph, launch_temp_or_launch_conf, 'aws_autoscaling_group')
 
     if connected_auto_scaling_groups:
         return True

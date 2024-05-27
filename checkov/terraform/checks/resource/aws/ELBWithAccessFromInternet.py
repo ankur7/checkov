@@ -1,12 +1,10 @@
-import re
-from typing import List
 
-from igraph import Vertex
+import rustworkx as rx
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.iac_common import flatten, get_sg_ingress_attributes, \
-    is_tagged_for_exceptions
+from checkov.terraform.checks.resource.aws.iac_common import flatten, get_sg_ingress_attributes, CustomVertex, \
+    is_tagged_for_exceptions, filter_nodes_by_resource_type, find_neighbors_with_resource_type
 
 AWS_ELB = 'aws_elb'  # Classic Load Balancer
 AWS_LB = 'aws_lb'    # Application Load Balancer
@@ -14,15 +12,19 @@ AWS_LB = 'aws_lb'    # Application Load Balancer
 AWS_SECURITY_GROUP = 'aws_security_group'
 
 
-def _is_elb_publicly_accessible(graph, resource_instance: Vertex, resource_instance_type: str) -> bool:
+def _is_elb_publicly_accessible(graph: rx.PyDiGraph, resource_instance: CustomVertex, resource_instance_type: str) -> bool:
 
-    connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
-                                 neighbor['resource_type'] == AWS_SECURITY_GROUP]
+    # connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
+    #                              neighbor['resource_type'] == AWS_SECURITY_GROUP]
 
-    for security_group in connected_security_groups:
-        security_group_attributes = security_group.attributes()
-        security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        ingress_list = security_group_attributes['attr']['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
+    connected_security_groups: list[CustomVertex] = find_neighbors_with_resource_type(graph, resource_instance, AWS_SECURITY_GROUP)
+
+    for custom_vertex in connected_security_groups:
+
+        # security_group_attributes = security_group.attributes()
+        security_group_attributes = custom_vertex.node_data
+        security_group_name = security_group_attributes['block_name_'].split('.')[1]
+        ingress_list = security_group_attributes['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
 
         if not ingress_list:
             continue  # no ingress_list, cannot check
@@ -68,13 +70,16 @@ class ELBWithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        aws_elb_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                                                      vertex["resource_type"] == AWS_ELB
-                                       ))
+        # aws_elb_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
+        #                                               vertex["resource_type"] == AWS_ELB
+        #                                ))
+        #
+        # aws_lb_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
+        #                                               vertex["resource_type"] == AWS_LB
+        #                                ))
 
-        aws_lb_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                                                      vertex["resource_type"] == AWS_LB
-                                       ))
+        aws_elb_list = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_ELB])
+        aws_lb_list = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_LB])
 
         for aws_elb in aws_elb_list:
             is_publicly_accessible = _is_elb_publicly_accessible(graph, aws_elb, AWS_ELB)

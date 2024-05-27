@@ -36,13 +36,13 @@ class AMIBlockPublicAccess(BaseResourceCheck):
             return result
 
         # resource_list: List[Vertex] = graph.vs.select(
-        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #     lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
         #             vertex["resource_type"] == AWS_AMI or
         #             vertex["resource_type"] == AWS_AMI_LAUNCH_PERMISSION
         #     ))
         #
 
-        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_AMI, AWS_AMI_LAUNCH_PERMISSION])
+        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_AMI, AWS_AMI_LAUNCH_PERMISSION])
 
         for custom_vertex in resource_list:
             node_index, resource_instance = custom_vertex.node_index, custom_vertex.node_data

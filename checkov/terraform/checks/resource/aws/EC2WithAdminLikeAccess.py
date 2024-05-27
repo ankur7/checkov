@@ -183,13 +183,13 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         # for ver in graph.vs:
         #     print(f"Vertex {ver.index}: {ver.attributes()}")
 
-        # resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        # resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
         #                                                    vertex["resource_type"] == AWS_INSTANCE or
         #                                                    vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
         #                                                    vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
         #                                     ))
 
-        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION])
+        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION])
 
         for custom_vertex1 in resource_list:
             resource_instance = custom_vertex1.node_data

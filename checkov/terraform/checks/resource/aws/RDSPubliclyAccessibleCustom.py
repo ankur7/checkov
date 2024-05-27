@@ -1,36 +1,39 @@
-import ipaddress
-
-from igraph import Vertex, Graph
+import rustworkx as rx
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.iac_common import flatten, is_public_ip, get_sg_ingress_attributes
+from checkov.terraform.checks.resource.aws.iac_common import flatten, is_public_ip, get_sg_ingress_attributes, \
+    filter_nodes_by_resource_type, CustomVertex, find_neighbors_with_resource_type
 
 AWS_DB_INSTANCE = 'aws_db_instance'
 AWS_RDS_CLUSTER_INSTANCE = 'aws_rds_cluster_instance'
 AWS_SECURITY_GROUP = 'aws_security_group'
 
 
-def _is_rds_publicly_accessible(graph: Graph, aws_rds: Vertex):
+def _is_rds_publicly_accessible(graph: rx.PyDiGraph, aws_rds: CustomVertex):
     """
     Check if the RDS is publicly accessible
     :param graph: graph instance
     :param aws_rds: aws_rds vertex
     :return: True if the RDS is publicly accessible, False otherwise
     """
-    aws_rds_attributes = aws_rds.attributes()
+    # aws_rds_attributes = aws_rds.attributes()
+    aws_rds_attributes = aws_rds.node_data
 
-    if aws_rds_attributes['attr'].get('publicly_accessible'):
+    if aws_rds_attributes.get('publicly_accessible'):
         return True
 
-    connected_security_groups = [neighbor for neighbor in graph.vs[aws_rds.index].neighbors() if
-                                 neighbor['resource_type'] == AWS_SECURITY_GROUP]
+    # connected_security_groups = [neighbor for neighbor in graph.vs[aws_rds.index].neighbors() if
+    #                              neighbor['resource_type'] == AWS_SECURITY_GROUP]
 
-    for security_group in connected_security_groups:
-        security_group_attributes = security_group.attributes()
-        security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        ingress_list = security_group_attributes['attr']['config_'][AWS_SECURITY_GROUP][security_group_name].get(
-            'ingress')
+    connected_security_groups: list[CustomVertex] = find_neighbors_with_resource_type(graph, aws_rds, AWS_SECURITY_GROUP)
+
+    for custom_vertex in connected_security_groups:
+        # security_group_attributes = security_group.attributes()
+
+        security_group_attributes = custom_vertex.node_data
+        security_group_name = security_group_attributes['block_name_'].split('.')[1]
+        ingress_list = security_group_attributes['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
 
         if not ingress_list:
             continue  # no ingress_list, cannot check
@@ -68,13 +71,16 @@ class RDSPubliclyAccessibleCustom(BaseResourceCheck):
         else:
             return result
 
-        aws_rds_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                vertex["resource_type"] == AWS_DB_INSTANCE or
-                vertex["resource_type"] == AWS_RDS_CLUSTER_INSTANCE
-        ))
+        # aws_rds_list = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
+        #         vertex["resource_type"] == AWS_DB_INSTANCE or
+        #         vertex["resource_type"] == AWS_RDS_CLUSTER_INSTANCE
+        # ))
 
-        for aws_rds in aws_rds_list:
-            is_publicly_accessible = _is_rds_publicly_accessible(graph, aws_rds)
+        aws_rds_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, str(conf["__address__"]),
+                                                                         [AWS_DB_INSTANCE, AWS_RDS_CLUSTER_INSTANCE])
+
+        for custom_vertex in aws_rds_list:
+            is_publicly_accessible = _is_rds_publicly_accessible(graph, custom_vertex)
 
             if is_publicly_accessible:
                 return CheckResult.FAILED
