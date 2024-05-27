@@ -262,14 +262,24 @@ def connected_to_auto_scaling_group(graph: rx.PyDiGraph, launch_temp_or_launch_c
     :return: True if the launch template or launch configuration is connected to an auto scaling group, False otherwise
     """
     # todo aj handle this for PyDiGraph
-    connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
-                                     neighbor['resource_type'] == 'aws_autoscaling_group']
+    # connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
+    #                                  neighbor['resource_type'] == 'aws_autoscaling_group']
+
+    connected_auto_scaling_groups = find_neighbors_with_resource_type(graph, launch_temp_or_launch_conf, 'aws_autoscaling_group')
+
     if connected_auto_scaling_groups:
         return True
     return False
 
 
 def find_neighbors_with_resource_type(graph: rx.PyDiGraph, vertex: CustomVertex, resource_type: str) -> List[CustomVertex]:
+    """
+    Find neighbors of a vertex with a specific resource type
+    :param graph: PyDiGraph instance
+    :param vertex: PyDiGraph vertex
+    :param resource_type: resource type to filter by (eg: 'aws_instance', 'aws_launch_configuration')
+    :return:
+    """
     # Access the adjacency list for the given vertex
     neighbors = graph.adj(vertex.node_index)
     matching_neighbors = []
@@ -283,6 +293,13 @@ def find_neighbors_with_resource_type(graph: rx.PyDiGraph, vertex: CustomVertex,
 
 
 def filter_nodes_by_resource_type(graph: rx.PyDiGraph, address: str, resource_types: list[str]) -> list[CustomVertex]:
+    """
+    Filter nodes by address and resource type
+    :param graph: PyDiGraph instance
+    :param address: address to filter by
+    :param resource_types: list of resource types to filter by
+    :return:
+    """
     filtered_nodes = []
     for node in graph.nodes():
         # Assuming node_data is a tuple (identifier, data_dict)

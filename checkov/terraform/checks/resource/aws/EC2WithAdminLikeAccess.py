@@ -1,11 +1,12 @@
 from typing import List, Union, Dict
 
-from igraph import Vertex, Graph
+import rustworkx as rx
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
 from checkov.terraform.checks.resource.aws.iac_common import flatten, is_public_ip, connected_to_auto_scaling_group, \
-    get_sg_ingress_attributes, contains_exception_tag
+    get_sg_ingress_attributes, contains_exception_tag, filter_nodes_by_resource_type, CustomVertex, \
+    find_neighbors_with_resource_type
 
 AWS = 'aws'
 
@@ -108,25 +109,29 @@ def get_admin_actions(policy: Dict[str, Union[str, List[str]]]):
     return admin_actions
 
 
-def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex, resource_instance_type: str) -> Union[bool, None]:
+def _is_ec2_instance_publicly_accessible(graph: rx.PyDiGraph, resource_instance: CustomVertex, resource_instance_type: str) -> Union[bool, None]:
     """
     Check if the EC2 instance is publicly accessible based on its connected security groups.
 
     Parameters:
-    - graph (Graph): The igraph Graph object.
-    - aws_instance (VertexSeq): VertexSeq for the EC2 Instance.
+    - graph: graph instance.
+    - aws_instance: CustomVertex for the EC2 Instance.
 
     Returns:
     - Union[bool, None]: True if the EC2 instance is publicly accessible, None otherwise.
     """
 
-    connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
-                                 neighbor['resource_type'] == AWS_SECURITY_GROUP]
+    # connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
+    #                              neighbor['resource_type'] == AWS_SECURITY_GROUP]
 
-    for security_group in connected_security_groups:
-        security_group_attributes = security_group.attributes()
-        security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
-        ingress_list = security_group_attributes['attr']['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
+    connected_security_groups: List[CustomVertex] = find_neighbors_with_resource_type(graph, resource_instance,
+                                                                                      AWS_SECURITY_GROUP)
+
+    for custom_vertex in connected_security_groups:
+        security_group_attributes = custom_vertex.node_data
+        # security_group_attributes = security_group.attributes()
+        security_group_name = security_group_attributes['block_name_'].split('.')[1]
+        ingress_list = security_group_attributes['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
 
         if not ingress_list:
             continue  # no ingress_list, cannot check
@@ -178,19 +183,22 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
         # for ver in graph.vs:
         #     print(f"Vertex {ver.index}: {ver.attributes()}")
 
-        resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                                                           vertex["resource_type"] == AWS_INSTANCE or
-                                                           vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
-                                                           vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
-                                            ))
+        # resource_list: List[Vertex] = graph.vs.select(lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #                                                    vertex["resource_type"] == AWS_INSTANCE or
+        #                                                    vertex["resource_type"] == AWS_LAUNCH_TEMPLATE or
+        #                                                    vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
+        #                                     ))
 
-        for resource_instance in resource_list:
+        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_INSTANCE, AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION])
+
+        for custom_vertex1 in resource_list:
+            resource_instance = custom_vertex1.node_data
             if resource_instance['resource_type'] in [AWS_LAUNCH_TEMPLATE, AWS_LAUNCH_CONFIGURATION]:
-                if not connected_to_auto_scaling_group(graph, resource_instance, resource_instance['resource_type']):
+                if not connected_to_auto_scaling_group(graph, custom_vertex1, resource_instance['resource_type']):
                     continue
 
             # First check if aws_instance is publicly accessible
-            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, resource_instance,
+            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, custom_vertex1,
                                                                           resource_instance['resource_type'])
 
             if not is_publicly_accessible:
@@ -198,23 +206,26 @@ class EC2WithAdminLikeAccess(BaseResourceCheck):
 
             # EC2 instance is publicly accessible, now check admin like policies
 
-            connected_iam_roles = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
-                                   neighbor['resource_type'] == AWS_IAM_ROLE]
+            # connected_iam_roles = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
+            #                        neighbor['resource_type'] == AWS_IAM_ROLE]
 
-            for iam_role in connected_iam_roles:
-                connected_iam_custom_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
-                                                 neighbor['resource_type'] == AWS_IAM_ROLE_POLICY]
+            connected_iam_roles: list[CustomVertex] = find_neighbors_with_resource_type(graph, custom_vertex1, AWS_IAM_ROLE)
+
+            for custom_vertex2 in connected_iam_roles:
+                connected_iam_custom_policies = find_neighbors_with_resource_type(graph, custom_vertex2, AWS_IAM_ROLE_POLICY)
+                # connected_iam_custom_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
+                #                                  neighbor['resource_type'] == AWS_IAM_ROLE_POLICY]
 
                 # For iam policy, we need to first describe the policy then check it's JSON. Cannot be done without
                 # making call to AWS account. So, skipping this check for now.
                 # connected_iam_aws_policies = [neighbor for neighbor in graph.vs[iam_role.index].neighbors() if
                 #                               neighbor['resource_type'] == AWS_IAM_ROLE_POLICY_ATTACHMENT]
 
-                for policy in connected_iam_custom_policies:
-                    policy_attributes = policy.attributes()
-                    policy_name = policy_attributes['attr']['block_name_'].split('.')[1]
-                    policy_content_json = policy_attributes['attr']['config_']['aws_iam_role_policy'][policy_name][
-                        'policy']
+                for custom_vertex3 in connected_iam_custom_policies:
+                    policy_attributes = custom_vertex3.node_data
+                    # policy_attributes = policy.attributes()
+                    policy_name = policy_attributes['block_name_'].split('.')[1]
+                    policy_content_json = policy_attributes['config_']['aws_iam_role_policy'][policy_name]['policy']
                     has_admin_actions = get_admin_actions(
                         policy_content_json[0])  # todo aj check if more than 1 item can be present in the dict
                     if has_admin_actions:
