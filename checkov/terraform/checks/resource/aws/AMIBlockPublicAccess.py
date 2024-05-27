@@ -1,11 +1,7 @@
-from typing import List, Union, Dict
-
-from igraph import Vertex, Graph
 
 from checkov.common.models.enums import CheckCategories, CheckResult
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
-from checkov.terraform.checks.resource.aws.iac_common import contains_exception_tag
-
+from checkov.terraform.checks.resource.aws.iac_common import contains_exception_tag, filter_nodes_by_resource_type, CustomVertex
 
 AWS_AMI = 'aws_ami'
 AWS_AMI_LAUNCH_PERMISSION = 'aws_ami_launch_permission'
@@ -39,15 +35,19 @@ class AMIBlockPublicAccess(BaseResourceCheck):
         else:
             return result
 
-        resource_list: List[Vertex] = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                    vertex["resource_type"] == AWS_AMI or
-                    vertex["resource_type"] == AWS_AMI_LAUNCH_PERMISSION
-            ))
+        # resource_list: List[Vertex] = graph.vs.select(
+        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #             vertex["resource_type"] == AWS_AMI or
+        #             vertex["resource_type"] == AWS_AMI_LAUNCH_PERMISSION
+        #     ))
+        #
 
-        for resource_instance in resource_list:
+        resource_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_AMI, AWS_AMI_LAUNCH_PERMISSION])
+
+        for custom_vertex in resource_list:
+            node_index, resource_instance = custom_vertex.node_index, custom_vertex.node_data
             if resource_instance['resource_type'] == AWS_AMI:
-                public = resource_instance['attr'].get('public', None)
+                public = resource_instance.get('public', None)
                 if public:
                     if contains_exception_tag(resource_instance, AWS_AMI, tag_key="Adobe:DataClassification",
                                               tag_values=["Public"]):
@@ -55,7 +55,7 @@ class AMIBlockPublicAccess(BaseResourceCheck):
                     else:
                         return CheckResult.FAILED
             elif resource_instance['resource_type'] == AWS_AMI_LAUNCH_PERMISSION:
-                group = resource_instance['attr'].get('group', None)
+                group = resource_instance.get('group', None)
                 if group and group == 'all':
                     if contains_exception_tag(resource_instance, AWS_AMI_LAUNCH_PERMISSION, tag_key="Adobe:DataClassification",
                                               tag_values=["Public"]):

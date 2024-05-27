@@ -1,11 +1,12 @@
 from typing import List
 
-from igraph import Vertex, Graph
+import rustworkx as rx
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck
 from checkov.terraform.checks.resource.aws.iac_common import flatten, get_sg_ingress_attributes,\
-    is_tagged_for_exceptions, connected_to_auto_scaling_group
+    is_tagged_for_exceptions, connected_to_auto_scaling_group, filter_nodes_by_resource_type, CustomVertex, \
+    find_neighbors_with_resource_type
 
 
 AWS = 'aws'
@@ -17,7 +18,7 @@ AWS_SECURITY_GROUP = 'aws_security_group'
 AWS_AUTOSCALING_GROUP = 'aws_autoscaling_group'
 
 
-def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex, resource_instance_type: str):
+def _is_ec2_instance_publicly_accessible(graph: rx.PyDiGraph, resource_instance: CustomVertex, resource_instance_type: str):
     """
     Check if the EC2 instance is publicly accessible
     :param graph:  graph instance
@@ -25,15 +26,21 @@ def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex
     :param resource_instance_type: aws_instance or aws_launch_template or aws_launch_configuration
     :return: True if the EC2 instance is publicly accessible, False otherwise
     """
-    connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
-                                 neighbor['resource_type'] == AWS_SECURITY_GROUP]
 
-    for security_group in connected_security_groups:
-        security_group_attributes = security_group.attributes()
-        security_group_name = security_group_attributes['attr']['block_name_'].split('.')[1]
+    neighbours = graph.adj(resource_instance.node_index)
 
-        ingress_list = security_group_attributes['attr']['config_'][AWS_SECURITY_GROUP][security_group_name].get(
-            'ingress')
+    connected_security_groups: List[CustomVertex] = find_neighbors_with_resource_type(graph, resource_instance, AWS_SECURITY_GROUP)
+
+    # connected_security_groups = [neighbor for neighbor in graph.vs[resource_instance.index].neighbors() if
+    #                              neighbor['resource_type'] == AWS_SECURITY_GROUP]
+
+    for custom_vertex in connected_security_groups:
+        security_group_attributes = custom_vertex.node_data
+
+        # security_group_attributes = security_group.attributes()
+        security_group_name = security_group_attributes['block_name_'].split('.')[1]
+
+        ingress_list = security_group_attributes['config_'][AWS_SECURITY_GROUP][security_group_name].get('ingress')
 
         if not ingress_list:
             continue  # no ingress_list, cannot check
@@ -41,7 +48,6 @@ def _is_ec2_instance_publicly_accessible(graph: Graph, resource_instance: Vertex
         ingress_list = flatten(ingress_list)
 
         for ingress in ingress_list:
-
             ingress_attributes = get_sg_ingress_attributes(ingress)
 
             cidr_blocks = ingress_attributes.get('cidr_blocks', None)
@@ -74,22 +80,26 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
         else:
             return result
 
-        aws_instance_list = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                    vertex["resource_type"] == AWS_INSTANCE
-            )
-            )
+        # aws_instance_list = graph.vs.select(
+        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #             vertex["resource_type"] == AWS_INSTANCE
+        #     )
+        #     )
 
-        for aws_instance in aws_instance_list:
-            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, aws_instance, AWS_INSTANCE)
+        aws_instance_list: list[CustomVertex] = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_INSTANCE])
+
+        for custom_vertex in aws_instance_list:
+            is_publicly_accessible = _is_ec2_instance_publicly_accessible(graph, custom_vertex, AWS_INSTANCE)
             if is_publicly_accessible:
                 return CheckResult.FAILED
 
-        launch_template_list = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
-                    vertex["resource_type"] == AWS_LAUNCH_TEMPLATE
-            )
-            )
+        # launch_template_list = graph.vs.select(
+        #     lambda vertex: vertex['attr'].get('__address__') == conf["__address__"] and (
+        #             vertex["resource_type"] == AWS_LAUNCH_TEMPLATE
+        #     )
+        #     )
+
+        launch_template_list = filter_nodes_by_resource_type(graph, conf["__address__"], [AWS_LAUNCH_TEMPLATE])
 
         for launch_template in launch_template_list:
             if not connected_to_auto_scaling_group(graph, launch_template, AWS_LAUNCH_TEMPLATE):

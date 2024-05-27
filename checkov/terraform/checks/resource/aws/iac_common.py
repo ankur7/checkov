@@ -5,9 +5,10 @@ Those common functions that will be used in Kodiak IAC Scanning
 
 import re
 import ipaddress
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Any
 
-from igraph import Graph, Vertex
+import rustworkx as rx
+# from igraph import Graph, Vertex # todo aj move from igraph to rustworkx
 
 
 PUBLIC_PORT_TAG_KEYS = [
@@ -21,6 +22,12 @@ JUSTIFICATION_TAG_KEYS = [
     "Adobe.PortJustification",
     "Adobe-PortJustification"
 ]
+
+
+class CustomVertex:
+    def __init__(self, node_index: int, node_data: Dict[str, Any]):
+        self.node_index = node_index
+        self.node_data = node_data
 
 
 def flatten(ingress_list):
@@ -114,7 +121,7 @@ def get_sg_ingress_attributes(ingress: Dict[str, Union[int, str, list]]) -> Dict
     return result
 
 
-def contains_exception_tag(resource_instance: Vertex, resource_type: str, tag_key: str, tag_values: List[Union[str, bool]]) -> bool:
+def contains_exception_tag(resource_instance: dict, resource_type: str, tag_key: str, tag_values: List[Union[str, bool]]) -> bool:
     """
     Checks if a resource has a specific tag with the expected value.
 
@@ -128,9 +135,8 @@ def contains_exception_tag(resource_instance: Vertex, resource_type: str, tag_ke
         True if the resource has the tag with the expected value, False otherwise.
     """
 
-    attributes = resource_instance.attributes()
-    name = attributes['attr']['block_name_'].split('.')[1]  # Extract resource name
-    tags = attributes['attr']['config_'][resource_type][name].get('tags')  # Access tags directly
+    name = resource_instance['block_name_'].split('.')[1]  # Extract resource name
+    tags = resource_instance['config_'][resource_type][name].get('tags')  # Access tags directly
 
     if not tags:
         return False
@@ -222,7 +228,7 @@ def generate_tagged_exceptions(tags: dict) -> dict:
     return exceptions
 
 
-def is_tagged_for_exceptions(resource_instance: Vertex, resource_type: str, from_port: int, to_port: int,
+def is_tagged_for_exceptions(resource_instance: CustomVertex, resource_type: str, from_port: int, to_port: int,
                              protocol: str) -> Union[bool, None]:
     """
     Check if the AWS Instance has the correct tags for the exception.
@@ -234,10 +240,10 @@ def is_tagged_for_exceptions(resource_instance: Vertex, resource_type: str, from
     :param protocol: Protocol of the ingress rule.
     :return: True if the instance is tagged correctly for the exception, False otherwise.
     """
-    resource_instance_attributes = resource_instance.attributes()
-    resource_instance_name: str = resource_instance_attributes['attr']['block_name_'].split('.')[1]
+    resource_instance_attributes: dict = resource_instance.node_data
+    resource_instance_name: str = resource_instance_attributes['block_name_'].split('.')[1]
 
-    resource_instance_tags: Union[List, Dict] = resource_instance_attributes['attr']['config_'][resource_type][resource_instance_name].get('tags')
+    resource_instance_tags: Union[List, Dict] = resource_instance_attributes['config_'][resource_type][resource_instance_name].get('tags')
 
     if resource_instance_tags and isinstance(resource_instance_tags, list):
         resource_instance_tags = resource_instance_tags[0]
@@ -248,15 +254,39 @@ def is_tagged_for_exceptions(resource_instance: Vertex, resource_type: str, from
                 return True
 
 
-def connected_to_auto_scaling_group(graph: Graph, launch_temp_or_launch_conf: Vertex, resource_type: str) -> bool:
+def connected_to_auto_scaling_group(graph: rx.PyDiGraph, launch_temp_or_launch_conf: CustomVertex, resource_type: str) -> bool:
     """
     Check if the launch template or launch configuration is connected to an auto scaling group
     :param graph: graph instance
     :param launch_temp_or_launch_conf: launch template or launch configuration vertex
     :return: True if the launch template or launch configuration is connected to an auto scaling group, False otherwise
     """
+    # todo aj handle this for PyDiGraph
     connected_auto_scaling_groups = [neighbor for neighbor in graph.vs[launch_temp_or_launch_conf.index].neighbors() if
                                      neighbor['resource_type'] == 'aws_autoscaling_group']
     if connected_auto_scaling_groups:
         return True
     return False
+
+
+def find_neighbors_with_resource_type(graph: rx.PyDiGraph, vertex: CustomVertex, resource_type: str) -> List[CustomVertex]:
+    # Access the adjacency list for the given vertex
+    neighbors = graph.adj(vertex.node_index)
+    matching_neighbors = []
+
+    for neighbor_index in neighbors:
+        node_index, node_data = graph.get_node_data(neighbor_index)
+        if node_data.get('resource_type') == resource_type:
+            matching_neighbors.append(CustomVertex(node_index, node_data))
+
+    return matching_neighbors
+
+
+def filter_nodes_by_resource_type(graph: rx.PyDiGraph, address: str, resource_types: list[str]) -> list[CustomVertex]:
+    filtered_nodes = []
+    for node in graph.nodes():
+        # Assuming node_data is a tuple (identifier, data_dict)
+        node_index, data_dict = node
+        if data_dict.get('__address__') == address and data_dict.get("resource_type") in resource_types:
+            filtered_nodes.append(CustomVertex(node_index, data_dict))
+    return filtered_nodes
