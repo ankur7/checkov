@@ -34,6 +34,7 @@ class ModuleDownload:
 
 
 def find_modules(path: str) -> List[ModuleDownload]:
+    # aj this is the code to download modules from git
     modules_found: list[ModuleDownload] = []
 
     for root, _, full_file_names in os.walk(path):
@@ -103,7 +104,7 @@ def load_tf_modules(
 ) -> None:
     module_loader_registry.root_dir = path
     if not modules_to_load:
-        modules_to_load = find_modules(path)
+        modules_to_load = find_modules(path) # todo aj, here we find all modules in the repo
 
     # To avoid duplicate work, we need to get the distinct module sources
     distinct_modules = list({m.address: m for m in modules_to_load}.values())

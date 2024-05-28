@@ -76,7 +76,7 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
         if self.context is None or self.definitions is None or self.breadcrumbs is None:
             self.definitions = {}
             logging.info("Scanning root folder and producing fresh tf_definitions and context")
-            tf_split_graph = strtobool(os.getenv("TF_SPLIT_GRAPH", "False"))
+            tf_split_graph = strtobool(os.getenv("TF_SPLIT_GRAPH", "False"))  # info ankur not sure when will this be True and what is the purpose
             if root_folder:
                 root_folder = os.path.abspath(root_folder)
                 if tf_split_graph:
@@ -131,7 +131,9 @@ class Runner(BaseTerraformRunner[_TerraformDefinitions, _TerraformContext, TFDef
                 raise Exception("Root directory was not specified")
 
         self.pbar.initiate(len(self.definitions))
-        self.check_tf_definition(report, root_folder, runner_filter, collect_skip_comments)
+
+        runner_filter.all_graphs = self.all_graphs
+        self.check_tf_definition(report, root_folder, runner_filter, collect_skip_comments)  # info ankur here the checks are run
 
         report.add_parsing_errors(parsing_errors.keys())
 

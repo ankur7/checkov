@@ -20,7 +20,7 @@ from cyclonedx.model import (
 )
 from cyclonedx.model.bom import Bom
 from cyclonedx.model.component import Component, ComponentType
-from cyclonedx.model.license import DisjunctiveLicense
+# from cyclonedx.model.license import DisjunctiveLicense
 from cyclonedx.model.vulnerability import (
     Vulnerability,
     VulnerabilityAdvisory,
@@ -31,7 +31,7 @@ from cyclonedx.model.vulnerability import (
     VulnerabilitySeverity,
 )
 from cyclonedx.schema import OutputFormat
-from cyclonedx.output import make_outputter
+# from cyclonedx.output import make_outputter
 from packageurl import PackageURL
 
 from checkov.common.output.common import ImageDetails, format_string_to_licenses, validate_lines
@@ -226,10 +226,10 @@ class CycloneDX:
         disjunctive_licenses = None
         licenses = resource.vulnerability_details.get("licenses")
 
-        if licenses:
-            disjunctive_licenses = [
-                DisjunctiveLicense(name=license) for license in format_string_to_licenses(licenses)
-            ]
+        # if licenses:
+        #     disjunctive_licenses = [
+        #         DisjunctiveLicense(name=license) for license in format_string_to_licenses(licenses)
+        #     ]
 
         purl = PackageURL(
             type=purl_type,
@@ -421,13 +421,14 @@ class CycloneDX:
         schema_version = CYCLONE_SCHEMA_VERSION.get(
             os.getenv("CHECKOV_CYCLONEDX_SCHEMA_VERSION", ""), DEFAULT_CYCLONE_SCHEMA_VERSION
         )
-        output = make_outputter(
-            bom=self.bom,
-            output_format=output_format,
-            schema_version=schema_version,
-        ).output_as_string()
-
-        return output
+        return ""
+        # output = make_outputter(
+        #     bom=self.bom,
+        #     output_format=output_format,
+        #     schema_version=schema_version,
+        # ).output_as_string()
+        #
+        # return output
 
     def get_xml_output(self) -> str:
         """Returns the SBOM as a XML formatted string"""

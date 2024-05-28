@@ -18,6 +18,13 @@ import argcomplete
 import configargparse
 from urllib3.exceptions import MaxRetryError
 
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add the parent directory to sys.path
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 import checkov.logging_init  # noqa  # should be imported before the others to ensure correct logging setup
 from checkov.ansible.runner import Runner as ansible_runner
 from checkov.argo_workflows.runner import Runner as argo_workflows_runner
@@ -100,34 +107,34 @@ add_resource_code_filter_to_logger(logger)
 # sca package runner added during the run method
 DEFAULT_RUNNERS: "list[BaseRunner[Any, Any, Any]]" = [
     tf_graph_runner(),
-    cfn_runner(),
-    k8_runner(),
-    sls_runner(),
-    arm_runner(),
-    tf_plan_runner(),
-    helm_runner(),
-    dockerfile_runner(),
-    secrets_runner(),
-    json_runner(),
-    yaml_runner(),
-    github_configuration_runner(),
-    gitlab_configuration_runner(),
-    gitlab_ci_runner(),
-    bitbucket_configuration_runner(),
-    bitbucket_pipelines_runner(),
-    kustomize_runner(),
-    github_actions_runner(),
-    bicep_runner(),
-    openapi_runner(),
-    sca_image_runner(),
-    sca_package_runner_2(),
-    argo_workflows_runner(),
-    circleci_pipelines_runner(),
-    azure_pipelines_runner(),
-    ansible_runner(),
-    TerraformJsonRunner(),
-    sast_runner(),
-    CdkRunner(),
+    # cfn_runner(),
+    # k8_runner(),
+    # sls_runner(),
+    # arm_runner(),
+    # tf_plan_runner(),
+    # helm_runner(),
+    # dockerfile_runner(),
+    # secrets_runner(),
+    # json_runner(),
+    # yaml_runner(),
+    # github_configuration_runner(),
+    # gitlab_configuration_runner(),
+    # gitlab_ci_runner(),
+    # bitbucket_configuration_runner(),
+    # bitbucket_pipelines_runner(),
+    # kustomize_runner(),
+    # github_actions_runner(),
+    # bicep_runner(),
+    # openapi_runner(),
+    # sca_image_runner(),
+    # sca_package_runner_2(),
+    # argo_workflows_runner(),
+    # circleci_pipelines_runner(),
+    # azure_pipelines_runner(),
+    # ansible_runner(),
+    # TerraformJsonRunner(),
+    # sast_runner(),
+    # CdkRunner(),
 ]
 
 
@@ -515,6 +522,7 @@ class Checkov:
                 exit_codes = []
                 bc_integration.scan_dir = self.config.directory
                 for root_folder in self.config.directory:
+                    # ankur, this is the absolute path of the directory which is passed as an argument for downloading
                     absolute_root_folder = os.path.abspath(root_folder)
                     if not os.path.exists(root_folder):
                         logger.error(f'Directory {root_folder} does not exist; skipping it')

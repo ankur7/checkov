@@ -82,7 +82,7 @@ information, see `loader.ModuleLoader.load`.
                         inner_module=inner_module,
                         tf_managed=tf_managed,
                     )
-                    logging.info(f"Attempting loading via {loader.__class__} loader")
+                    print(f"Attempting loading via {loader.__class__} loader")
                     content = loader.load(module_params)
                 except Exception as e:
                     logging.warning(f'Module {module_address} failed to load via {loader.__class__}')
