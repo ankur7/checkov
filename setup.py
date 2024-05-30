@@ -75,7 +75,7 @@ setup(
         "junit-xml>=1.9,<2.0",
         "dpath==2.1.3",
         "pyyaml>=6.0.0,<7.0.0",
-        "boto3==1.34.25",
+        "boto3==1.34.107",
         "gitpython>=3.1.30,<4.0.0",
         "jmespath>=1.0.0,<2.0.0",
         "tqdm>=4.65.0,<5.0.0",
@@ -90,7 +90,7 @@ setup(
         "importlib-metadata>=6.0.0,<8.0.0",
         "cachetools>=5.2.0,<6.0.0",
         "cyclonedx-python-lib>=6.0.0,<7.0.0",
-        "packageurl-python>=0.11.1,<0.14.0",
+        "packageurl-python==0.15.0",
         "click>=8.1.0,<9.0.0",
         "aiohttp>=3.8.0,<4.0.0",
         "aiodns>=3.0.0,<4.0.0",
@@ -108,8 +108,8 @@ setup(
         "license-expression>=30.1.0,<31.0.0",
         "rustworkx>=0.13.0,<0.14.0",
         "pydantic>=2.0.0,<3.0.0",
-        "botocore==1.34.25",
-        "urllib3>=1.26.0,<2.0.0"
+        "botocore==1.34.113",
+        "urllib3==2.2.1"
     ],
     dependency_links=[],  # keep it empty, needed for pipenv-setup
     license="Apache License 2.0",

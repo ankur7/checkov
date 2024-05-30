@@ -1,6 +1,4 @@
-from typing import Dict, List, Any
-
-from igraph import Vertex
+from typing import Dict, List
 
 from checkov.common.models.enums import CheckResult, CheckCategories
 from checkov.terraform.checks.resource.base_resource_check import BaseResourceCheck

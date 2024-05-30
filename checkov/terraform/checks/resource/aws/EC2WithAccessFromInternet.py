@@ -109,11 +109,12 @@ class EC2WithAccessFromInternet(BaseResourceCheck):
             if is_publicly_accessible:
                 return CheckResult.FAILED
 
-        launch_configuration_list = graph.vs.select(
-            lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
-                    vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
-            )
-            )
+        launch_configuration_list = filter_nodes_by_resource_type(graph, str(conf["__address__"]), [AWS_LAUNCH_CONFIGURATION])
+        # launch_configuration_list = graph.vs.select(
+        #     lambda vertex: vertex['attr'].get('__address__') == str(conf["__address__"]) and (
+        #             vertex["resource_type"] == AWS_LAUNCH_CONFIGURATION
+        #     )
+        #     )
 
         for launch_configuration in launch_configuration_list:
             if not connected_to_auto_scaling_group(graph, launch_configuration, AWS_LAUNCH_CONFIGURATION):
